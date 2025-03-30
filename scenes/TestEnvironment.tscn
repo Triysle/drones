@@ -1,0 +1,85 @@
+[gd_scene load_steps=10 format=3 uid="uid://6mp53ttpf0ud"]
+
+[ext_resource type="Texture2D" uid="uid://vajvd1nq3lux" path="res://addons/kenney_prototype_textures/dark/texture_08.png" id="1_u7bsa"]
+[ext_resource type="Texture2D" uid="uid://c8abu1dixwd42" path="res://addons/kenney_prototype_textures/orange/texture_09.png" id="2_yhw7g"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_xf2xp"]
+albedo_texture = ExtResource("1_u7bsa")
+uv1_triplanar = true
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_oqwq7"]
+material = SubResource("StandardMaterial3D_xf2xp")
+size = Vector2(500, 500)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_j6s73"]
+albedo_texture = ExtResource("2_yhw7g")
+uv1_triplanar = true
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_uq0ob"]
+albedo_texture = ExtResource("2_yhw7g")
+uv1_triplanar = true
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_jw7v2"]
+sky_top_color = Color(0.529412, 0.454902, 0.341176, 1)
+
+[sub_resource type="Sky" id="Sky_eronj"]
+sky_material = SubResource("ProceduralSkyMaterial_jw7v2")
+
+[sub_resource type="Environment" id="Environment_b2s03"]
+background_mode = 2
+sky = SubResource("Sky_eronj")
+
+[node name="TestEnvironment" type="Node3D"]
+
+[node name="Ground" type="MeshInstance3D" parent="."]
+mesh = SubResource("PlaneMesh_oqwq7")
+
+[node name="Props" type="Node" parent="."]
+
+[node name="CSGBox3D" type="CSGBox3D" parent="Props"]
+transform = Transform3D(0.752745, 0.380731, -0.537046, -0.309936, 0.924686, 0.221124, 0.580788, 0, 0.814055, 2.55776, -0.195552, -25.5013)
+size = Vector3(5.39307, 3.54272, 4.96484)
+material = SubResource("StandardMaterial3D_j6s73")
+
+[node name="CSGBox3D2" type="CSGBox3D" parent="Props"]
+transform = Transform3D(0.811728, -0.0755531, -0.579128, 0.0615043, 0.997142, -0.0438803, 0.580788, 1.13467e-08, 0.814055, 62.3295, 0.558208, -3.69028)
+size = Vector3(8.01831, 3.54272, 9.20253)
+material = SubResource("StandardMaterial3D_j6s73")
+
+[node name="CSGBox3D3" type="CSGBox3D" parent="Props"]
+transform = Transform3D(-0.542578, -0.36301, 0.757518, -0.309936, 0.924686, 0.221124, -0.780736, -0.114805, -0.614224, 46.9756, 2.4827, 33.8663)
+size = Vector3(5.39307, 13.8285, 4.96484)
+material = SubResource("StandardMaterial3D_j6s73")
+
+[node name="CSGBox3D4" type="CSGBox3D" parent="Props"]
+transform = Transform3D(0.752745, 0.380731, -0.537046, -0.309936, 0.924686, 0.221124, 0.580788, 0, 0.814055, -28.0999, -0.499607, 36.4246)
+size = Vector3(15.8913, 3.54272, 11.9531)
+material = SubResource("StandardMaterial3D_j6s73")
+
+[node name="CSGBox3D5" type="CSGBox3D" parent="Props"]
+transform = Transform3D(-0.532679, 0.0237604, -0.845984, -0.742362, 0.466877, 0.480546, 0.406388, 0.884003, -0.231057, -34.6167, -0.765467, -4.17903)
+size = Vector3(5.39307, 3.54272, 2.5929)
+material = SubResource("StandardMaterial3D_j6s73")
+
+[node name="CSGCylinder3D" type="CSGCylinder3D" parent="Props"]
+transform = Transform3D(1, 0, 0, 0, 0.877799, -0.479029, 0, 0.479029, 0.877799, -14, 0, -20)
+radius = 3.0
+material = SubResource("StandardMaterial3D_uq0ob")
+
+[node name="CSGCylinder3D2" type="CSGCylinder3D" parent="Props"]
+transform = Transform3D(0.0806686, 0.996741, 0, -0.996741, 0.0806686, 0, 0, 0, 1, 37.5967, -0.569053, -20)
+radius = 3.0
+height = 16.1084
+material = SubResource("StandardMaterial3D_uq0ob")
+
+[node name="CSGCylinder3D3" type="CSGCylinder3D" parent="Props"]
+transform = Transform3D(-0.0155236, -0.191809, -0.981309, -0.996741, 0.0806686, 0, 0.0791609, 0.978111, -0.192436, 18.6302, 0, 56.3641)
+radius = 5.4126
+material = SubResource("StandardMaterial3D_uq0ob")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.60873, 0.53836, -0.582767, -0.182749, 0.809933, 0.557325, 0.772043, -0.23276, 0.591415, 0, 0, 0)
+shadow_enabled = true
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_b2s03")

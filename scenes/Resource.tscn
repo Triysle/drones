@@ -1,0 +1,51 @@
+[gd_scene load_steps=9 format=3 uid="uid://df450jh25fs0o"]
+
+[ext_resource type="Script" uid="uid://cyr8o20l1f1jm" path="res://scripts/Resource.gd" id="1_4lt4o"]
+
+[sub_resource type="SphereMesh" id="SphereMesh_jbho7"]
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_4lt4o"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_avugf"]
+transparency = 1
+albedo_color = Color(1, 1, 0, 0.0784314)
+emission_enabled = true
+emission = Color(1, 1, 0, 1)
+
+[sub_resource type="SphereMesh" id="SphereMesh_fejse"]
+material = SubResource("StandardMaterial3D_avugf")
+radius = 0.6
+height = 1.2
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_jbho7"]
+direction = Vector3(0, 0, 0)
+spread = 180.0
+initial_velocity_min = 2.0
+initial_velocity_max = 3.0
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_4lt4o"]
+albedo_color = Color(1, 1, 0, 1)
+emission_enabled = true
+emission = Color(1, 0, 0, 1)
+
+[sub_resource type="SphereMesh" id="SphereMesh_avugf"]
+material = SubResource("StandardMaterial3D_4lt4o")
+radius = 0.01
+height = 0.02
+
+[node name="Resource" type="StaticBody3D"]
+script = ExtResource("1_4lt4o")
+
+[node name="Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("SphereMesh_jbho7")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("SphereShape3D_4lt4o")
+
+[node name="ScanHighlight" type="MeshInstance3D" parent="."]
+mesh = SubResource("SphereMesh_fejse")
+skeleton = NodePath("../CollisionShape3D")
+
+[node name="GPUParticles3D" type="GPUParticles3D" parent="."]
+process_material = SubResource("ParticleProcessMaterial_jbho7")
+draw_pass_1 = SubResource("SphereMesh_avugf")

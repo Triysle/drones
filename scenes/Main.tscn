@@ -1,0 +1,26 @@
+[gd_scene load_steps=2 format=3 uid="uid://cc1xo1ohutfl"]
+
+[ext_resource type="Script" uid="uid://bni2ha4odumw1" path="res://scripts/GameManager.gd" id="1_elqb8"]
+
+[node name="GameManager" type="Node"]
+script = ExtResource("1_elqb8")
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+
+[node name="MissionDisplay" type="Control" parent="CanvasLayer"]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="HelpPanel" type="Control" parent="CanvasLayer"]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="PauseMenu" type="Control" parent="CanvasLayer"]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0

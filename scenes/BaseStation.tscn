@@ -1,0 +1,125 @@
+[gd_scene load_steps=6 format=3 uid="uid://dy428q51dyjd3"]
+
+[ext_resource type="Script" uid="uid://cgip43em6p0ct" path="res://scripts/BaseStation.gd" id="1_iu1fa"]
+[ext_resource type="Script" uid="uid://cbyc3h2jr6spw" path="res://scripts/ResourceDisplay.gd" id="2_qptkt"]
+[ext_resource type="Script" uid="uid://br6mdodag811c" path="res://scripts/DeploymentPanel.gd" id="3_v6vfi"]
+[ext_resource type="Script" uid="uid://cy2aa8pp8r5ib" path="res://scripts/UpgradePanel.gd" id="4_v2mj5"]
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_fv1n8"]
+top_radius = 10.0
+bottom_radius = 12.0
+height = 1.0
+
+[node name="BaseStation" type="Node3D"]
+script = ExtResource("1_iu1fa")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+mesh = SubResource("CylinderMesh_fv1n8")
+
+[node name="AerialSpawnPoint" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 1, 0)
+
+[node name="GroundSpawnPoint" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 1, 0)
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+
+[node name="ResourceDisplay" type="Control" parent="CanvasLayer"]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+script = ExtResource("2_qptkt")
+
+[node name="ScrapMetalCount" type="Label" parent="CanvasLayer/ResourceDisplay"]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 23.0
+
+[node name="PowerCellCount" type="Label" parent="CanvasLayer/ResourceDisplay"]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 23.0
+
+[node name="ElectronicPartsCount" type="Label" parent="CanvasLayer/ResourceDisplay"]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 23.0
+
+[node name="RareMetalCount" type="Label" parent="CanvasLayer/ResourceDisplay"]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 23.0
+
+[node name="DeploymentPanel" type="Control" parent="CanvasLayer"]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+script = ExtResource("3_v6vfi")
+
+[node name="AerialDroneButton" type="Button" parent="CanvasLayer/DeploymentPanel"]
+layout_mode = 0
+offset_right = 8.0
+offset_bottom = 8.0
+
+[node name="GroundDroneButton" type="Button" parent="CanvasLayer/DeploymentPanel"]
+layout_mode = 0
+offset_right = 8.0
+offset_bottom = 8.0
+
+[node name="StatusLabel" type="Label" parent="CanvasLayer/DeploymentPanel"]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 23.0
+
+[node name="UpgradePanel" type="Control" parent="CanvasLayer"]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+script = ExtResource("4_v2mj5")
+
+[node name="AerialUpgrades" type="Control" parent="CanvasLayer/UpgradePanel"]
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="BatteryButton" type="Button" parent="CanvasLayer/UpgradePanel/AerialUpgrades"]
+layout_mode = 0
+offset_right = 8.0
+offset_bottom = 8.0
+
+[node name="ScanButton" type="Button" parent="CanvasLayer/UpgradePanel/AerialUpgrades"]
+layout_mode = 0
+offset_right = 8.0
+offset_bottom = 8.0
+
+[node name="SpeedButton" type="Button" parent="CanvasLayer/UpgradePanel/AerialUpgrades"]
+layout_mode = 0
+offset_right = 8.0
+offset_bottom = 8.0
+
+[node name="GroundUpgrades" type="Control" parent="CanvasLayer/UpgradePanel"]
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="CargoButton" type="Button" parent="CanvasLayer/UpgradePanel/GroundUpgrades"]
+layout_mode = 0
+offset_right = 8.0
+offset_bottom = 8.0
+
+[node name="SpeedButton" type="Button" parent="CanvasLayer/UpgradePanel/GroundUpgrades"]
+layout_mode = 0
+offset_right = 8.0
+offset_bottom = 8.0
+
+[node name="TerrainButton" type="Button" parent="CanvasLayer/UpgradePanel/GroundUpgrades"]
+layout_mode = 0
+offset_right = 8.0
+offset_bottom = 8.0
+
+[node name="MissionStatus" type="Label" parent="CanvasLayer"]
+offset_right = 40.0
+offset_bottom = 23.0

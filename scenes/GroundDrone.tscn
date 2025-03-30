@@ -1,0 +1,30 @@
+[gd_scene load_steps=4 format=3 uid="uid://hm58txnl0i6t"]
+
+[ext_resource type="Script" uid="uid://dwa8xcq5kittb" path="res://scripts/GroundDrone.gd" id="1_86fod"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_vw06u"]
+size = Vector3(2, 0.5, 3)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_86fod"]
+size = Vector3(2, 0.5, 3)
+
+[node name="GroundDrone" type="CharacterBody3D"]
+script = ExtResource("1_86fod")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_vw06u")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_86fod")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, -1)
+
+[node name="InteractionRay" type="RayCast3D" parent="Camera3D"]
+target_position = Vector3(0, 0, -3)
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+
+[node name="CargoIndicator" type="ProgressBar" parent="CanvasLayer"]
+offset_right = 4.0
+offset_bottom = 27.0
