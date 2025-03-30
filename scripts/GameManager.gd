@@ -21,6 +21,9 @@ var missions_completed = 0
 @onready var help_panel = $CanvasLayer/HelpPanel
 @onready var pause_menu = $CanvasLayer/PauseMenu
 
+# Mouse capture state
+var mouse_was_captured = false
+
 func _ready():
 	# Setup initial game state
 	initialize_game()
@@ -180,15 +183,38 @@ func toggle_pause_menu():
 	
 	# Pause game when menu is visible
 	get_tree().paused = pause_menu.visible
+	
+	# Handle mouse capture
+	if pause_menu.visible:
+		# Store current mouse mode before freeing it
+		mouse_was_captured = Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED
+		# Free the mouse when paused
+		Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+	else:
+		# Restore mouse capture state when unpausing
+		if mouse_was_captured:
+			Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 
 func toggle_help_panel():
 	# Show/hide help panel
 	help_panel.visible = !help_panel.visible
+	
+	# Optionally free the mouse when help is visible
+	if help_panel.visible:
+		mouse_was_captured = Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED
+		Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+	else:
+		if mouse_was_captured and !pause_menu.visible:
+			Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 
 # Signal handlers
 func _on_resume_game():
 	pause_menu.visible = false
 	get_tree().paused = false
+	
+	# Restore mouse capture state
+	if mouse_was_captured:
+		Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 
 func _on_quit_game():
 	# Return to title screen or quit game

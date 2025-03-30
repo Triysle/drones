@@ -6,6 +6,7 @@ extends CharacterBody3D
 @export var deceleration: float = 5.0
 @export var rotation_speed: float = 1.5
 @export var gravity: float = 20.0
+@export var mouse_sensitivity: float = 0.002
 
 # Resource Collection
 @export var max_cargo_capacity: int = 5
@@ -14,7 +15,7 @@ var collected_resources = {}  # Dictionary to track resource types and quantitie
 
 # State Management
 enum DroneState {IDLE, DRIVING, COLLECTING, DOCKING}
-var current_state: DroneState = DroneState.IDLE
+var current_state: DroneState = DroneState.DRIVING
 
 # References
 @onready var camera = $Camera3D
@@ -28,6 +29,13 @@ var waypoints = []  # Will be populated from aerial drone's marked locations
 func _ready():
 	# Initialize UI
 	update_cargo_display()
+	
+	# Start directly in driving mode
+	current_state = DroneState.DRIVING
+	
+	# Capture mouse
+	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+	print("Ground drone deployed - mouse captured for camera control")
 
 func _physics_process(delta):
 	match current_state:
@@ -47,35 +55,54 @@ func _physics_process(delta):
 			velocity.y -= gravity * delta
 		move_and_slide()
 
+func _input(event):
+	# Mouse look when driving
+	if current_state == DroneState.DRIVING and event is InputEventMouseMotion:
+		# Rotate the drone horizontally based on mouse movement
+		rotate_y(-event.relative.x * mouse_sensitivity)
+		
+		# Limit vertical camera rotation without rotating the whole drone
+		var current_tilt = camera.rotation.x
+		current_tilt -= event.relative.y * mouse_sensitivity
+		current_tilt = clamp(current_tilt, -PI/4, PI/4) # Limit to 45 degrees up/down
+		camera.rotation.x = current_tilt
+
 func process_idle(_delta):
-	# Handle transition to driving
-	if Input.is_action_just_pressed("deploy_drone"):
-		current_state = DroneState.DRIVING
+	# Just a placeholder state - we start in DRIVING now
+	pass
 
 func process_driving(delta):
-	# Get movement input
-	var input_dir = Input.get_vector("move_left", "move_right", "move_forward", "move_backward")
+	# Get movement input - WASD controls
+	var input_forward = Input.get_axis("move_forward", "move_backward")  # Corrected order
+	var input_right = Input.get_axis("move_left", "move_right")  # Back to original order
 	
-	# Rotation based on input direction
-	if input_dir != Vector2.ZERO:
-		var target_rotation = Vector3(0, atan2(-input_dir.x, -input_dir.y), 0)
-		rotation.y = lerp_angle(rotation.y, target_rotation.y, rotation_speed * delta)
+	# Debug print
+	if input_forward != 0 or input_right != 0:
+		print("Ground drone input - Forward:", input_forward, " Right:", input_right)
 	
-	# Forward/backward movement based on input
-	var direction = (transform.basis.z * -input_dir.y + transform.basis.x * -input_dir.x).normalized()
-	if direction:
+	# Calculate movement direction (relative to drone orientation)
+	var direction = Vector3.ZERO
+	direction += transform.basis.z * input_forward  # Forward/backward along drone's facing (flipped Z axis)
+	direction += transform.basis.x * input_right     # Strafe left/right
+	
+	# Normalize for consistent speed in all directions
+	if direction.length_squared() > 0:
+		direction = direction.normalized()
 		velocity.x = direction.x * max_speed
 		velocity.z = direction.z * max_speed
 	else:
+		# Decelerate when no input
 		velocity.x = move_toward(velocity.x, 0, deceleration * delta)
 		velocity.z = move_toward(velocity.z, 0, deceleration * delta)
 	
 	# Check for resource interaction
 	if Input.is_action_just_pressed("interact"):
+		print("Interaction button pressed")
 		check_for_resource()
 	
 	# Check for docking
 	if Input.is_action_just_pressed("dock") and is_near_base():
+		print("Docking initiated")
 		current_state = DroneState.DOCKING
 
 func process_collecting(_delta):
@@ -88,14 +115,18 @@ func process_collecting(_delta):
 	
 	# Return to driving state
 	current_state = DroneState.DRIVING
+	print("Collection complete, returning to driving mode")
 
 func process_docking(_delta):
 	# Docking logic - move toward docking point
 	velocity = Vector3.ZERO
-	print("Docking sequence")
+	print("Docking sequence in progress")
 	
 	# Simulate docking completion
 	await get_tree().create_timer(2.0).timeout
+	
+	# Release mouse when returning to base
+	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 	complete_docking()
 
 func check_for_resource():
@@ -103,7 +134,12 @@ func check_for_resource():
 	if interaction_ray.is_colliding():
 		var collider = interaction_ray.get_collider()
 		if collider.is_in_group("resource") and current_cargo < max_cargo_capacity:
+			print("Resource detected: ", collider.resource_type)
 			collect_resource(collider)
+		else:
+			print("Raycast hit: ", collider.name, " (not a resource or cargo full)")
+	else:
+		print("No object detected by interaction ray")
 
 func collect_resource(resource_node):
 	# Check if there's space in cargo
@@ -140,7 +176,7 @@ func update_cargo_display():
 
 func is_near_base():
 	# This would check distance to base in practice
-	# For now, we'll just return true when a key is pressed
+	# For now, we'll just return true when the dock key is pressed
 	return true
 
 func complete_docking():

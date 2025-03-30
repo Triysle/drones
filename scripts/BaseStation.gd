@@ -58,13 +58,15 @@ func _ready():
 	
 	# Start in base management
 	enter_base_management()
+	
+	print("Base station initialized")
 
 func _input(event):
 	# Tab between management modes in base
 	if event.is_action_pressed("toggle_management_mode") and current_state == GameState.BASE_MANAGEMENT:
 		upgrade_panel.visible = !upgrade_panel.visible
 	
-	# Emergency recall drone
+	# Emergency recall drone - now using R key instead of ESC
 	if event.is_action_pressed("recall_drone") and current_state != GameState.BASE_MANAGEMENT:
 		recall_active_drone()
 
@@ -88,6 +90,8 @@ func enter_base_management():
 	
 	# Reset active drone reference
 	active_drone = null
+	
+	print("Entered base management mode")
 
 func deploy_aerial_drone():
 	current_state = GameState.AERIAL_DEPLOYMENT
@@ -114,6 +118,8 @@ func deploy_aerial_drone():
 	
 	# Update status
 	mission_status.text = "Aerial Drone Deployed: Scan for Resources"
+	
+	print("Aerial drone deployed - ready for control with WASD, Space/Shift to ascend/descend, F to scan")
 
 func deploy_ground_drone():
 	current_state = GameState.GROUND_DEPLOYMENT
@@ -144,6 +150,8 @@ func deploy_ground_drone():
 	
 	# Update status
 	mission_status.text = "Ground Drone Deployed: Collect Resources"
+	
+	print("Ground drone deployed - ready for control with WASD, F to interact with resources")
 
 func recall_active_drone():
 	# Emergency recall function
@@ -151,7 +159,7 @@ func recall_active_drone():
 		# In a full implementation, this would handle returning to base
 		# For now, we'll just return to base management
 		enter_base_management()
-		print("Emergency recall activated")
+		print("Emergency recall activated - returning to base")
 
 func apply_aerial_upgrades(drone):
 	# Apply upgrade levels to drone properties
@@ -176,8 +184,11 @@ func apply_ground_upgrades(drone):
 
 func update_resource_display():
 	# Update UI with current resource counts
-	for resource_type in stored_resources:
-		resource_display.update_resource(resource_type, stored_resources[resource_type])
+	resource_display.update_all(stored_resources)
+	
+	# Also update upgrade panel if it exists
+	if upgrade_panel:
+		upgrade_panel.update_button_states(stored_resources, aerial_drone_upgrades, ground_drone_upgrades)
 
 func process_upgrade(drone_type, upgrade_type):
 	# Check if we have resources for the upgrade
@@ -250,13 +261,16 @@ func _on_deploy_ground():
 
 func _on_aerial_drone_docked():
 	# Return to base management when aerial drone docks
+	print("Aerial drone docked successfully")
 	enter_base_management()
 
 func _on_resources_delivered(resources):
 	# Process delivered resources
+	print("Resources delivered to base:")
 	for resource_type in resources:
 		if resource_type in stored_resources:
 			stored_resources[resource_type] += resources[resource_type]
+			print("- " + resource_type + ": " + str(resources[resource_type]))
 	
 	# Update UI
 	update_resource_display()

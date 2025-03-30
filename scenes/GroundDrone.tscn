@@ -18,7 +18,7 @@ mesh = SubResource("BoxMesh_vw06u")
 shape = SubResource("BoxShape3D_86fod")
 
 [node name="Camera3D" type="Camera3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, -1)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.580738, -1.36761)
 
 [node name="InteractionRay" type="RayCast3D" parent="Camera3D"]
 target_position = Vector3(0, 0, -3)

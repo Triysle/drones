@@ -8,6 +8,7 @@ extends CharacterBody3D
 @export var vertical_speed: float = 5.0
 @export var max_altitude: float = 50.0
 @export var min_altitude: float = 1.5
+@export var mouse_sensitivity: float = 0.002
 
 # Battery System
 @export var max_battery: float = 100.0
@@ -24,7 +25,7 @@ var is_scanning: bool = false
 
 # State Management
 enum DroneState {IDLE, FLYING, SCANNING, DOCKING, DEPLETED}
-var current_state: DroneState = DroneState.IDLE
+var current_state: DroneState = DroneState.FLYING
 
 # Camera and visuals
 @onready var camera = $Camera3D
@@ -33,84 +34,116 @@ var current_state: DroneState = DroneState.IDLE
 
 # Movement variables
 var input_dir: Vector2 = Vector2.ZERO
-var velocity_target: Vector3 = Vector3.ZERO
+var vertical_input: float = 0.0
 
 func _ready():
 	# Initialize
 	$ScanEffect.connect("body_entered", Callable(self, "_on_scan_effect_body_entered"))
 	scan_effect.visible = false
 	update_battery_display()
+	
+	# Start directly in flying mode
+	current_state = DroneState.FLYING
+	
+	# Capture mouse
+	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+	print("Aerial drone deployed - mouse captured for camera control")
 
-func _physics_process(_delta):
+func _physics_process(delta):
 	match current_state:
 		DroneState.IDLE:
-			process_idle(_delta)
+			process_idle(delta)
 		DroneState.FLYING:
-			process_flying(_delta)
+			process_flying(delta)
 		DroneState.SCANNING:
-			process_scanning(_delta)
+			process_scanning(delta)
 		DroneState.DOCKING:
-			process_docking(_delta)
+			process_docking(delta)
 		DroneState.DEPLETED:
-			process_depleted(_delta)
+			process_depleted(delta)
 	
 	# Apply movement if not depleted
 	if current_state != DroneState.DEPLETED:
 		move_and_slide()
 
+func _input(event):
+	# Mouse look when flying
+	if current_state == DroneState.FLYING and event is InputEventMouseMotion:
+		# Rotate camera based on mouse movement
+		rotate_y(-event.relative.x * mouse_sensitivity)
+		
+		# Limit vertical camera rotation
+		var current_tilt = camera.rotation.x
+		current_tilt -= event.relative.y * mouse_sensitivity
+		current_tilt = clamp(current_tilt, -PI/4, PI/4) # Limit to 45 degrees up/down
+		camera.rotation.x = current_tilt
+
 func process_idle(_delta):
-	# Handle transition to flying
-	if Input.is_action_just_pressed("deploy_drone"):
-		current_state = DroneState.FLYING
+	# Just a placeholder state - we start in FLYING now
+	pass
 
 func _on_scan_effect_body_entered(body):
 	if body.is_in_group("resource") and body.scan_visible:
-		print("Detected resource: " + body.resource_type)
+		print("Detected resource in scan zone: " + body.resource_type)
+		body.highlight_as_scanned()
 
-func process_flying(_delta):
+func process_flying(delta):
 	# Apply battery drain
-	drain_battery(_delta)
+	drain_battery(delta)
 	
-	# Process movement input
-	input_dir = Input.get_vector("move_left", "move_right", "move_forward", "move_backward")
+	# Get input direction
+	input_dir.x = Input.get_axis("move_left", "move_right")
+	input_dir.y = Input.get_axis("move_forward", "move_backward")
 	
-	# Rotation based on input direction
+	# Debug print
 	if input_dir != Vector2.ZERO:
-		var target_rotation = Vector3(0, atan2(-input_dir.x, -input_dir.y), 0)
-		rotation.y = lerp_angle(rotation.y, target_rotation.y, rotation_speed * _delta)
+		print("Input detected: ", input_dir)
 	
-	# Forward/backward movement based on input
-	var direction = (transform.basis.z * -input_dir.y + transform.basis.x * -input_dir.x).normalized()
-	if direction:
-		velocity_target.x = direction.x * max_speed
-		velocity_target.z = direction.z * max_speed
+	# Get vertical input
+	vertical_input = Input.get_axis("descend", "ascend")
+	
+	# Calculate movement direction (relative to drone orientation)
+	var direction = Vector3.ZERO
+	direction += transform.basis.z * input_dir.y  # Forward/back (flipped Z axis)
+	direction += transform.basis.x * input_dir.x   # Left/right
+	direction = direction.normalized()
+	
+	# Apply horizontal movement
+	if direction != Vector3.ZERO:
+		velocity.x = direction.x * max_speed
+		velocity.z = direction.z * max_speed
 	else:
-		velocity_target.x = move_toward(velocity_target.x, 0, deceleration * _delta)
-		velocity_target.z = move_toward(velocity_target.z, 0, deceleration * _delta)
+		velocity.x = move_toward(velocity.x, 0, deceleration * delta)
+		velocity.z = move_toward(velocity.z, 0, deceleration * delta)
 	
-	# Vertical movement
-	if Input.is_action_pressed("ascend") and global_position.y < max_altitude:
-		velocity_target.y = vertical_speed
-	elif Input.is_action_pressed("descend") and global_position.y > min_altitude:
-		velocity_target.y = -vertical_speed
+	# Apply vertical movement
+	if vertical_input != 0:
+		# Check altitude limits
+		if (vertical_input > 0 and global_position.y < max_altitude) or \
+		   (vertical_input < 0 and global_position.y > min_altitude):
+			velocity.y = vertical_input * vertical_speed
+			if vertical_input > 0:
+				print("Ascending")
+			else:
+				print("Descending")
+		else:
+			velocity.y = move_toward(velocity.y, 0, deceleration * delta)
 	else:
-		velocity_target.y = move_toward(velocity_target.y, 0, deceleration * _delta)
-	
-	# Apply smoothing to movement
-	velocity.x = lerp(velocity.x, velocity_target.x, acceleration * _delta)
-	velocity.z = lerp(velocity.z, velocity_target.z, acceleration * _delta)
-	velocity.y = lerp(velocity.y, velocity_target.y, acceleration * _delta)
+		velocity.y = move_toward(velocity.y, 0, deceleration * delta)
 	
 	# Handle scanning
 	if Input.is_action_just_pressed("scan") and current_battery > scan_energy_cost:
+		print("Scan initiated")
 		begin_scan()
 	
-	# Check for docking zone
-	check_docking_zone()
+	# Check for docking - now on a different key
+	if Input.is_action_just_pressed("dock") and is_near_base():
+		print("Docking initiated")
+		current_state = DroneState.DOCKING
 
-func process_scanning(_delta):
+func process_scanning(delta):
 	# Continue draining battery
-	drain_battery(_delta)
+	drain_battery(delta)
 	
 	# Apply a small hover movement
 	velocity = Vector3.ZERO
@@ -119,6 +152,8 @@ func process_scanning(_delta):
 	if !is_scanning:
 		is_scanning = true
 		scan_effect.visible = true
+		print("Scan in progress...")
+		
 		# Start scan animation
 		await get_tree().create_timer(1.5).timeout
 		
@@ -129,28 +164,30 @@ func process_scanning(_delta):
 		scan_effect.visible = false
 		is_scanning = false
 		current_state = DroneState.FLYING
+		print("Scan complete, returning to flight mode")
 
-func process_docking(_delta):
+func process_docking(delta):
 	# Docking logic - move toward docking point
-	# This would be expanded with actual path following to dock
 	velocity = Vector3.ZERO
-	print("Docking sequence")
+	print("Docking sequence in progress")
 	
 	# Simulate docking completion
 	await get_tree().create_timer(2.0).timeout
+	
+	# Release mouse when returning to base
+	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 	complete_docking()
 
-func process_depleted(_delta):
+func process_depleted(delta):
 	# Drone slowly descends when battery depleted
 	velocity.x = 0
 	velocity.z = 0
 	velocity.y = -2.0  # Slow descent
-	
-	# Could add visual effects for emergency landing
+	print("Battery depleted - emergency landing")
 
-func drain_battery(_delta):
+func drain_battery(delta):
 	# Reduce battery over time
-	current_battery -= battery_drain_rate * _delta
+	current_battery -= battery_drain_rate * delta
 	update_battery_display()
 	
 	# Check for low/depleted battery
@@ -158,9 +195,11 @@ func drain_battery(_delta):
 		current_battery = 0
 		is_battery_depleted = true
 		current_state = DroneState.DEPLETED
+		print("Battery fully depleted!")
 	elif current_battery <= low_battery_threshold:
 		# Visual/audio warning could be triggered here
-		pass
+		if int(current_battery) % 5 == 0:  # Only print every 5 units to avoid spam
+			print("Low battery warning: ", int(current_battery))
 
 func update_battery_display():
 	# Update UI battery indicator
@@ -198,15 +237,9 @@ func mark_location(pos):
 	# and add it to the minimap
 	print("Marked location at: ", pos)
 
-func check_docking_zone():
-	# Check if the drone is in docking zone
-	# This would use area detection in practice
-	if Input.is_action_just_pressed("dock") and is_near_base():
-		current_state = DroneState.DOCKING
-
 func is_near_base():
 	# This would check distance to base in practice
-	# For now, we'll just return true when a key is pressed
+	# For now, we'll just return true when the dock key is pressed
 	return true
 
 func complete_docking():
@@ -219,7 +252,6 @@ func complete_docking():
 	current_state = DroneState.IDLE
 	
 	# Signal to game controller that docking is complete
-	# This would switch to ground drone in the full game
 	print("Docking complete, battery recharged")
 	emit_signal("docking_completed")
 

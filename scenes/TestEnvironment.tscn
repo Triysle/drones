@@ -1,15 +1,18 @@
-[gd_scene load_steps=10 format=3 uid="uid://6mp53ttpf0ud"]
+[gd_scene load_steps=11 format=3 uid="uid://6mp53ttpf0ud"]
 
-[ext_resource type="Texture2D" uid="uid://vajvd1nq3lux" path="res://addons/kenney_prototype_textures/dark/texture_08.png" id="1_u7bsa"]
+[ext_resource type="Texture2D" uid="uid://dsrhbxtwn354m" path="res://addons/kenney_prototype_textures/dark/texture_09.png" id="1_u7bsa"]
 [ext_resource type="Texture2D" uid="uid://c8abu1dixwd42" path="res://addons/kenney_prototype_textures/orange/texture_09.png" id="2_yhw7g"]
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_xf2xp"]
+[sub_resource type="BoxShape3D" id="BoxShape3D_oqwq7"]
+size = Vector3(500, 1, 500)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_yhw7g"]
 albedo_texture = ExtResource("1_u7bsa")
 uv1_triplanar = true
 
-[sub_resource type="PlaneMesh" id="PlaneMesh_oqwq7"]
-material = SubResource("StandardMaterial3D_xf2xp")
-size = Vector2(500, 500)
+[sub_resource type="BoxMesh" id="BoxMesh_xf2xp"]
+material = SubResource("StandardMaterial3D_yhw7g")
+size = Vector3(500, 1, 500)
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_j6s73"]
 albedo_texture = ExtResource("2_yhw7g")
@@ -31,8 +34,15 @@ sky = SubResource("Sky_eronj")
 
 [node name="TestEnvironment" type="Node3D"]
 
-[node name="Ground" type="MeshInstance3D" parent="."]
-mesh = SubResource("PlaneMesh_oqwq7")
+[node name="Ground" type="StaticBody3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Ground"]
+shape = SubResource("BoxShape3D_oqwq7")
+
+[node name="Mesh" type="MeshInstance3D" parent="Ground"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
+mesh = SubResource("BoxMesh_xf2xp")
+skeleton = NodePath("../..")
 
 [node name="Props" type="Node" parent="."]
 
