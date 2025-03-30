@@ -1,36 +1,52 @@
-[gd_scene load_steps=6 format=3 uid="uid://dy428q51dyjd3"]
+[gd_scene load_steps=9 format=3 uid="uid://dy428q51dyjd3"]
 
 [ext_resource type="Script" uid="uid://cgip43em6p0ct" path="res://scripts/BaseStation.gd" id="1_iu1fa"]
 [ext_resource type="Script" uid="uid://cbyc3h2jr6spw" path="res://scripts/ResourceDisplay.gd" id="2_qptkt"]
+[ext_resource type="PackedScene" uid="uid://c2l38vnfcxqdm" path="res://scenes/AerialDrone.tscn" id="2_v6vfi"]
+[ext_resource type="PackedScene" uid="uid://hm58txnl0i6t" path="res://scenes/GroundDrone.tscn" id="3_v2mj5"]
 [ext_resource type="Script" uid="uid://br6mdodag811c" path="res://scripts/DeploymentPanel.gd" id="3_v6vfi"]
 [ext_resource type="Script" uid="uid://cy2aa8pp8r5ib" path="res://scripts/UpgradePanel.gd" id="4_v2mj5"]
 
 [sub_resource type="CylinderMesh" id="CylinderMesh_fv1n8"]
 top_radius = 10.0
-bottom_radius = 12.0
-height = 1.0
+bottom_radius = 10.0
+height = 0.2
 
-[node name="BaseStation" type="Node3D"]
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_v6vfi"]
+height = 0.2
+radius = 10.0
+
+[node name="BaseStation" type="StaticBody3D" node_paths=PackedStringArray("aerial_spawn_point", "ground_spawn_point")]
 script = ExtResource("1_iu1fa")
+aerial_drone_scene = ExtResource("2_v6vfi")
+ground_drone_scene = ExtResource("3_v2mj5")
+aerial_spawn_point = NodePath("AerialSpawnPoint")
+ground_spawn_point = NodePath("GroundSpawnPoint")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="."]
 mesh = SubResource("CylinderMesh_fv1n8")
 
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("CylinderShape3D_v6vfi")
+
 [node name="AerialSpawnPoint" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 1, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 2, 0)
 
 [node name="GroundSpawnPoint" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 1, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 2, 0)
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 
 [node name="ResourceDisplay" type="Control" parent="CanvasLayer"]
 layout_mode = 3
-anchors_preset = 0
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
 offset_left = 20.0
-offset_top = 20.0
+offset_top = -148.0
 offset_right = 20.0
-offset_bottom = 20.0
+offset_bottom = -148.0
+grow_vertical = 0
 script = ExtResource("2_qptkt")
 
 [node name="ResourceCounts" type="Control" parent="CanvasLayer/ResourceDisplay"]

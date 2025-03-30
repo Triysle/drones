@@ -46,6 +46,9 @@ shape = SubResource("SphereShape3D_64xnk")
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 
 [node name="BatteryIndicator" type="ProgressBar" parent="CanvasLayer"]
-offset_right = 4.0
-offset_bottom = 27.0
+custom_minimum_size = Vector2(300, 0)
+offset_left = 20.0
+offset_top = 20.0
+offset_right = 320.0
+offset_bottom = 47.0
 rounded = true
