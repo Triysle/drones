@@ -18,8 +18,8 @@ var current_state: DroneState = DroneState.IDLE
 
 # References
 @onready var camera = $Camera3D
-@onready var cargo_indicator = $UI/CargoIndicator
-@onready var interaction_ray = $InteractionRay
+@onready var cargo_indicator = $CanvasLayer/CargoIndicator
+@onready var interaction_ray = $Camera3D/InteractionRay
 
 # Navigation
 var target_waypoint = null

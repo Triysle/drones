@@ -37,6 +37,7 @@ var velocity_target: Vector3 = Vector3.ZERO
 
 func _ready():
 	# Initialize
+	$ScanEffect.connect("body_entered", Callable(self, "_on_scan_effect_body_entered"))
 	scan_effect.visible = false
 	update_battery_display()
 
@@ -61,6 +62,10 @@ func process_idle(_delta):
 	# Handle transition to flying
 	if Input.is_action_just_pressed("deploy_drone"):
 		current_state = DroneState.FLYING
+
+func _on_scan_effect_body_entered(body):
+	if body.is_in_group("resource") and body.scan_visible:
+		print("Detected resource: " + body.resource_type)
 
 func process_flying(_delta):
 	# Apply battery drain
@@ -174,19 +179,16 @@ func perform_scan():
 			mark_location(object.global_position)
 
 func get_scannable_objects_in_range():
-	# This would use physics overlaps or raycasts in practice
-	# For now we'll return a dummy array
-	var dummy_results = []
+	var scannable_objects = []
 	
-	# In a real implementation, you'd do something like:
-	# var space_state = get_world_3d().direct_space_state
-	# var query = PhysicsShapeQueryParameters3D.new()
-	# query.set_transform(Transform3D(Basis(), global_position))
-	# query.set_shape(scan_shape)
-	# dummy_results = space_state.intersect_shape(query)
+	# Use Area3D's overlapping bodies
+	for body in $ScanEffect.get_overlapping_bodies():
+		if body.is_in_group("resource"):
+			scannable_objects.append(body)
+			body.highlight_as_scanned()
 	
-	print("Scanning for objects...")
-	return dummy_results
+	print("Found " + str(scannable_objects.size()) + " scannable objects")
+	return scannable_objects
 
 func mark_location(pos):
 	# Add to marked locations

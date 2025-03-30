@@ -27,8 +27,10 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 1, 0)
 [node name="ResourceDisplay" type="Control" parent="CanvasLayer"]
 layout_mode = 3
 anchors_preset = 0
-offset_right = 40.0
-offset_bottom = 40.0
+offset_left = 20.0
+offset_top = 20.0
+offset_right = 20.0
+offset_bottom = 20.0
 script = ExtResource("2_qptkt")
 
 [node name="ResourceCounts" type="Control" parent="CanvasLayer/ResourceDisplay"]
@@ -58,73 +60,127 @@ offset_bottom = 23.0
 
 [node name="DeploymentPanel" type="Control" parent="CanvasLayer"]
 layout_mode = 3
-anchors_preset = 0
-offset_right = 40.0
-offset_bottom = 40.0
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_top = -56.0
+offset_bottom = -56.0
+grow_horizontal = 2
+grow_vertical = 0
 script = ExtResource("3_v6vfi")
 
 [node name="AerialDroneButton" type="Button" parent="CanvasLayer/DeploymentPanel"]
 layout_mode = 0
-offset_right = 8.0
-offset_bottom = 8.0
+offset_left = -54.0
+offset_right = -1.0
+offset_bottom = 31.0
+text = "Aerial"
 
 [node name="GroundDroneButton" type="Button" parent="CanvasLayer/DeploymentPanel"]
 layout_mode = 0
 offset_right = 8.0
 offset_bottom = 8.0
+text = "Ground"
 
 [node name="StatusLabel" type="Label" parent="CanvasLayer/DeploymentPanel"]
-layout_mode = 0
-offset_right = 40.0
-offset_bottom = 23.0
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -24.0
+offset_top = -29.0
+offset_right = 25.0
+offset_bottom = -6.0
+grow_horizontal = 2
+text = "Status"
+horizontal_alignment = 1
 
 [node name="UpgradePanel" type="Control" parent="CanvasLayer"]
+custom_minimum_size = Vector2(800, 600)
 layout_mode = 3
-anchors_preset = 0
-offset_right = 40.0
-offset_bottom = 40.0
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0
+grow_horizontal = 2
+grow_vertical = 2
 script = ExtResource("4_v2mj5")
 
 [node name="AerialUpgrades" type="Control" parent="CanvasLayer/UpgradePanel"]
+layout_mode = 1
 anchors_preset = 0
-offset_right = 40.0
-offset_bottom = 40.0
+offset_left = 20.0
+offset_top = 20.0
+offset_right = 60.0
+offset_bottom = 60.0
 
 [node name="BatteryButton" type="Button" parent="CanvasLayer/UpgradePanel/AerialUpgrades"]
 layout_mode = 0
 offset_right = 8.0
 offset_bottom = 8.0
+text = "Battery"
 
 [node name="ScanButton" type="Button" parent="CanvasLayer/UpgradePanel/AerialUpgrades"]
 layout_mode = 0
-offset_right = 8.0
-offset_bottom = 8.0
+offset_top = 35.0
+offset_right = 45.0
+offset_bottom = 66.0
+text = "Scan"
 
 [node name="SpeedButton" type="Button" parent="CanvasLayer/UpgradePanel/AerialUpgrades"]
 layout_mode = 0
-offset_right = 8.0
-offset_bottom = 8.0
+offset_top = 71.0
+offset_right = 56.0
+offset_bottom = 102.0
+text = "Speed"
 
 [node name="GroundUpgrades" type="Control" parent="CanvasLayer/UpgradePanel"]
-anchors_preset = 0
-offset_right = 40.0
-offset_bottom = 40.0
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -100.0
+offset_top = 20.0
+offset_right = -60.0
+offset_bottom = 60.0
+grow_horizontal = 0
 
 [node name="CargoButton" type="Button" parent="CanvasLayer/UpgradePanel/GroundUpgrades"]
 layout_mode = 0
 offset_right = 8.0
 offset_bottom = 8.0
+text = "Cargo"
 
 [node name="SpeedButton" type="Button" parent="CanvasLayer/UpgradePanel/GroundUpgrades"]
 layout_mode = 0
-offset_right = 8.0
-offset_bottom = 8.0
+offset_top = 35.0
+offset_right = 56.0
+offset_bottom = 66.0
+text = "Speed"
 
 [node name="TerrainButton" type="Button" parent="CanvasLayer/UpgradePanel/GroundUpgrades"]
 layout_mode = 0
-offset_right = 8.0
-offset_bottom = 8.0
+offset_left = 1.0
+offset_top = 68.0
+offset_right = 65.0
+offset_bottom = 99.0
+text = "Terrain"
 
 [node name="MissionStatus" type="Label" parent="CanvasLayer"]
-offset_right = 40.0
-offset_bottom = 23.0
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -56.0
+offset_top = 23.0
+offset_right = 57.0
+offset_bottom = 46.0
+grow_horizontal = 2
+text = "MIssion Status"
+horizontal_alignment = 1
