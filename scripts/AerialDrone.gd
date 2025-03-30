@@ -29,7 +29,7 @@ var current_state: DroneState = DroneState.IDLE
 # Camera and visuals
 @onready var camera = $Camera3D
 @onready var scan_effect = $ScanEffect
-@onready var battery_indicator = $UI/BatteryIndicator
+@onready var battery_indicator = $CanvasLayer/BatteryIndicator
 
 # Movement variables
 var input_dir: Vector2 = Vector2.ZERO
@@ -40,31 +40,31 @@ func _ready():
 	scan_effect.visible = false
 	update_battery_display()
 
-func _physics_process(delta):
+func _physics_process(_delta):
 	match current_state:
 		DroneState.IDLE:
-			process_idle(delta)
+			process_idle(_delta)
 		DroneState.FLYING:
-			process_flying(delta)
+			process_flying(_delta)
 		DroneState.SCANNING:
-			process_scanning(delta)
+			process_scanning(_delta)
 		DroneState.DOCKING:
-			process_docking(delta)
+			process_docking(_delta)
 		DroneState.DEPLETED:
-			process_depleted(delta)
+			process_depleted(_delta)
 	
 	# Apply movement if not depleted
 	if current_state != DroneState.DEPLETED:
 		move_and_slide()
 
-func process_idle(delta):
+func process_idle(_delta):
 	# Handle transition to flying
 	if Input.is_action_just_pressed("deploy_drone"):
 		current_state = DroneState.FLYING
 
-func process_flying(delta):
+func process_flying(_delta):
 	# Apply battery drain
-	drain_battery(delta)
+	drain_battery(_delta)
 	
 	# Process movement input
 	input_dir = Input.get_vector("move_left", "move_right", "move_forward", "move_backward")
@@ -72,7 +72,7 @@ func process_flying(delta):
 	# Rotation based on input direction
 	if input_dir != Vector2.ZERO:
 		var target_rotation = Vector3(0, atan2(-input_dir.x, -input_dir.y), 0)
-		rotation.y = lerp_angle(rotation.y, target_rotation.y, rotation_speed * delta)
+		rotation.y = lerp_angle(rotation.y, target_rotation.y, rotation_speed * _delta)
 	
 	# Forward/backward movement based on input
 	var direction = (transform.basis.z * -input_dir.y + transform.basis.x * -input_dir.x).normalized()
@@ -80,8 +80,8 @@ func process_flying(delta):
 		velocity_target.x = direction.x * max_speed
 		velocity_target.z = direction.z * max_speed
 	else:
-		velocity_target.x = move_toward(velocity_target.x, 0, deceleration * delta)
-		velocity_target.z = move_toward(velocity_target.z, 0, deceleration * delta)
+		velocity_target.x = move_toward(velocity_target.x, 0, deceleration * _delta)
+		velocity_target.z = move_toward(velocity_target.z, 0, deceleration * _delta)
 	
 	# Vertical movement
 	if Input.is_action_pressed("ascend") and global_position.y < max_altitude:
@@ -89,12 +89,12 @@ func process_flying(delta):
 	elif Input.is_action_pressed("descend") and global_position.y > min_altitude:
 		velocity_target.y = -vertical_speed
 	else:
-		velocity_target.y = move_toward(velocity_target.y, 0, deceleration * delta)
+		velocity_target.y = move_toward(velocity_target.y, 0, deceleration * _delta)
 	
 	# Apply smoothing to movement
-	velocity.x = lerp(velocity.x, velocity_target.x, acceleration * delta)
-	velocity.z = lerp(velocity.z, velocity_target.z, acceleration * delta)
-	velocity.y = lerp(velocity.y, velocity_target.y, acceleration * delta)
+	velocity.x = lerp(velocity.x, velocity_target.x, acceleration * _delta)
+	velocity.z = lerp(velocity.z, velocity_target.z, acceleration * _delta)
+	velocity.y = lerp(velocity.y, velocity_target.y, acceleration * _delta)
 	
 	# Handle scanning
 	if Input.is_action_just_pressed("scan") and current_battery > scan_energy_cost:
@@ -103,9 +103,9 @@ func process_flying(delta):
 	# Check for docking zone
 	check_docking_zone()
 
-func process_scanning(delta):
+func process_scanning(_delta):
 	# Continue draining battery
-	drain_battery(delta)
+	drain_battery(_delta)
 	
 	# Apply a small hover movement
 	velocity = Vector3.ZERO
@@ -125,7 +125,7 @@ func process_scanning(delta):
 		is_scanning = false
 		current_state = DroneState.FLYING
 
-func process_docking(delta):
+func process_docking(_delta):
 	# Docking logic - move toward docking point
 	# This would be expanded with actual path following to dock
 	velocity = Vector3.ZERO
@@ -135,7 +135,7 @@ func process_docking(delta):
 	await get_tree().create_timer(2.0).timeout
 	complete_docking()
 
-func process_depleted(delta):
+func process_depleted(_delta):
 	# Drone slowly descends when battery depleted
 	velocity.x = 0
 	velocity.z = 0
@@ -143,9 +143,9 @@ func process_depleted(delta):
 	
 	# Could add visual effects for emergency landing
 
-func drain_battery(delta):
+func drain_battery(_delta):
 	# Reduce battery over time
-	current_battery -= battery_drain_rate * delta
+	current_battery -= battery_drain_rate * _delta
 	update_battery_display()
 	
 	# Check for low/depleted battery
@@ -188,13 +188,13 @@ func get_scannable_objects_in_range():
 	print("Scanning for objects...")
 	return dummy_results
 
-func mark_location(position):
+func mark_location(pos):
 	# Add to marked locations
-	marked_locations.append(position)
+	marked_locations.append(pos)
 	
 	# In practice, you'd also create a visual marker in the world
 	# and add it to the minimap
-	print("Marked location at: ", position)
+	print("Marked location at: ", pos)
 
 func check_docking_zone():
 	# Check if the drone is in docking zone

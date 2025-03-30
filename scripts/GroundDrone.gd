@@ -47,7 +47,7 @@ func _physics_process(delta):
 			velocity.y -= gravity * delta
 		move_and_slide()
 
-func process_idle(delta):
+func process_idle(_delta):
 	# Handle transition to driving
 	if Input.is_action_just_pressed("deploy_drone"):
 		current_state = DroneState.DRIVING
@@ -78,7 +78,7 @@ func process_driving(delta):
 	if Input.is_action_just_pressed("dock") and is_near_base():
 		current_state = DroneState.DOCKING
 
-func process_collecting(delta):
+func process_collecting(_delta):
 	# Resource collection animation/process
 	velocity = Vector3.ZERO
 	
@@ -89,7 +89,7 @@ func process_collecting(delta):
 	# Return to driving state
 	current_state = DroneState.DRIVING
 
-func process_docking(delta):
+func process_docking(_delta):
 	# Docking logic - move toward docking point
 	velocity = Vector3.ZERO
 	print("Docking sequence")

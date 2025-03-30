@@ -31,22 +31,27 @@ offset_right = 40.0
 offset_bottom = 40.0
 script = ExtResource("2_qptkt")
 
-[node name="ScrapMetalCount" type="Label" parent="CanvasLayer/ResourceDisplay"]
+[node name="ResourceCounts" type="Control" parent="CanvasLayer/ResourceDisplay"]
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="ScrapMetalCount" type="Label" parent="CanvasLayer/ResourceDisplay/ResourceCounts"]
 layout_mode = 0
 offset_right = 40.0
 offset_bottom = 23.0
 
-[node name="PowerCellCount" type="Label" parent="CanvasLayer/ResourceDisplay"]
+[node name="PowerCellCount" type="Label" parent="CanvasLayer/ResourceDisplay/ResourceCounts"]
 layout_mode = 0
 offset_right = 40.0
 offset_bottom = 23.0
 
-[node name="ElectronicPartsCount" type="Label" parent="CanvasLayer/ResourceDisplay"]
+[node name="ElectronicPartsCount" type="Label" parent="CanvasLayer/ResourceDisplay/ResourceCounts"]
 layout_mode = 0
 offset_right = 40.0
 offset_bottom = 23.0
 
-[node name="RareMetalCount" type="Label" parent="CanvasLayer/ResourceDisplay"]
+[node name="RareMetalCount" type="Label" parent="CanvasLayer/ResourceDisplay/ResourceCounts"]
 layout_mode = 0
 offset_right = 40.0
 offset_bottom = 23.0

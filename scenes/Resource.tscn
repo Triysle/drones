@@ -46,6 +46,6 @@ shape = SubResource("SphereShape3D_4lt4o")
 mesh = SubResource("SphereMesh_fejse")
 skeleton = NodePath("../CollisionShape3D")
 
-[node name="GPUParticles3D" type="GPUParticles3D" parent="."]
+[node name="CollectionParticles" type="GPUParticles3D" parent="."]
 process_material = SubResource("ParticleProcessMaterial_jbho7")
 draw_pass_1 = SubResource("SphereMesh_avugf")

@@ -10,7 +10,7 @@ extends Control
 @onready var ground_terrain_button = $GroundUpgrades/TerrainButton
 
 # Label references
-@onready var resource_labels = $ResourceCounts
+@onready var resource_labels = $"../ResourceDisplay/ResourceCounts"
 
 # Signals
 signal upgrade_selected(drone_type, upgrade_type)
@@ -37,22 +37,22 @@ func update_button_states(resources, aerial_levels, ground_levels):
 	update_button(ground_terrain_button, "ground", "terrain_handling", ground_levels["terrain_handling"], resources)
 
 # Update a single button's state and tooltip
-func update_button(button, drone_type, upgrade_type, current_level, resources):
+func update_button(button, _drone_type, upgrade_type, current_level, resources):
 	# Calculate cost for next level
-	var cost = calculate_upgrade_cost(drone_type, upgrade_type, current_level)
+	var cost = calculate_upgrade_cost(_drone_type, upgrade_type, current_level)
 	
 	# Check if affordable
 	var can_afford = can_afford_upgrade(cost, resources)
 	button.disabled = !can_afford
 	
 	# Update tooltip with cost and effect
-	button.tooltip_text = get_upgrade_tooltip(drone_type, upgrade_type, current_level, cost)
+	button.tooltip_text = get_upgrade_tooltip(_drone_type, upgrade_type, current_level, cost)
 	
 	# Update button text to show current level
 	button.text = get_upgrade_name(upgrade_type) + " (Lv. " + str(current_level) + ")"
 
 # Calculate upgrade cost (should match BaseStation.gd)
-func calculate_upgrade_cost(drone_type, upgrade_type, level):
+func calculate_upgrade_cost(_drone_type, upgrade_type, level):
 	# Calculate cost based on current level
 	var cost = {}
 	
@@ -98,7 +98,7 @@ func get_upgrade_name(upgrade_type):
 			return upgrade_type.capitalize()
 
 # Generate tooltip showing upgrade effects and costs
-func get_upgrade_tooltip(drone_type, upgrade_type, current_level, cost):
+func get_upgrade_tooltip(_drone_type, upgrade_type, _current_level, cost):
 	var tooltip = ""
 	
 	# Describe upgrade effect

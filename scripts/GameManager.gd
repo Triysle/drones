@@ -4,7 +4,7 @@ extends Node
 
 # Scene references
 @export var test_environment_scene = load("res://scenes/TestEnvironment.tscn")
-@export var base_station_scene = load("res://scenes/BaseStation.tscn")
+@export var base_station_scene = load("res://scenes/BaseStation.tscn") 
 @export var resource_scene = load("res://scenes/Resource.tscn")
 
 # Current environment
@@ -17,9 +17,9 @@ var total_resources_collected = 0
 var missions_completed = 0
 
 # UI References
-@onready var mission_display = $UI/MissionDisplay
-@onready var help_panel = $UI/HelpPanel
-@onready var pause_menu = $UI/PauseMenu
+@onready var mission_display = $CanvasLayer/MissionDisplay
+@onready var help_panel = $CanvasLayer/HelpPanel
+@onready var pause_menu = $CanvasLayer/PauseMenu
 
 func _ready():
 	# Setup initial game state

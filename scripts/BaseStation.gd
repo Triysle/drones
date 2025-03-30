@@ -1,7 +1,7 @@
 extends Node3D
 
 # Base Station Properties
-@export var aerial_drone_scen = load("res://scenes/AerialDrone.tscn")
+@export var aerial_drone_scene = load("res://scenes/AerialDrone.tscn") 
 @export var ground_drone_scene = load("res://scenes/GroundDrone.tscn")
 
 # Drone References
@@ -35,10 +35,10 @@ var ground_drone_upgrades = {
 @export var ground_spawn_point: Node3D
 
 # UI References
-@onready var resource_display = $UI/ResourceDisplay
-@onready var upgrade_panel = $UI/UpgradePanel
-@onready var deployment_panel = $UI/DeploymentPanel
-@onready var mission_status = $UI/MissionStatus
+@onready var resource_display = $CanvasLayer/ResourceDisplay
+@onready var upgrade_panel = $CanvasLayer/UpgradePanel
+@onready var deployment_panel = $CanvasLayer/DeploymentPanel
+@onready var mission_status = $CanvasLayer/MissionStatus
 
 # Game State
 enum GameState {BASE_MANAGEMENT, AERIAL_DEPLOYMENT, GROUND_DEPLOYMENT}
@@ -169,8 +169,8 @@ func apply_ground_upgrades(drone):
 	drone.max_speed = 7.0 * ground_drone_upgrades["speed"]
 	
 	# Terrain handling would affect physics properties
-	var terrain_level = ground_drone_upgrades["terrain_handling"]
-	# For example: drone.terrain_check_height = base_height * terrain_level
+	var _terrain_level = ground_drone_upgrades["terrain_handling"]
+	# For example: drone.terrain_check_height = base_height * _terrain_level
 	
 	print("Applied ground drone upgrades")
 

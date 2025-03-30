@@ -1,10 +1,10 @@
 extends Control
 
 # Resource display labels
-@onready var scrap_metal_label = $ScrapMetalCount
-@onready var power_cell_label = $PowerCellCount
-@onready var electronic_parts_label = $ElectronicPartsCount
-@onready var rare_metal_label = $RareMetalCount
+@onready var scrap_metal_label = $ResourceCounts/ScrapMetalCount
+@onready var power_cell_label = $ResourceCounts/PowerCellCount
+@onready var electronic_parts_label = $ResourceCounts/ElectronicPartsCount
+@onready var rare_metal_label = $ResourceCounts/RareMetalCount
 
 func _ready():
 	# Initialize with zeros
