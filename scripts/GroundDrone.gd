@@ -8,6 +8,7 @@ extends CharacterBody3D
 @export var gravity: float = 20.0
 @export var mouse_sensitivity: float = 0.002
 @export var traction: float = 0.6
+@export var detection_distance: float = 5.0  # How far to check for resources
 
 # Resource Collection
 @export var max_cargo_capacity: int = 5
@@ -27,6 +28,7 @@ var current_state: DroneState = DroneState.DRIVING
 # Navigation
 var target_waypoint = null
 var waypoints = []  # Will be populated from aerial drone's marked locations
+var resource_in_sight = false  # Track if we're looking at a resource for crosshair
 
 func _ready():
 	# Initialize UI
@@ -35,9 +37,10 @@ func _ready():
 	# Start directly in driving mode
 	current_state = DroneState.DRIVING
 	
-	# Make sure the interaction ray is enabled and set to the right collision mask
+	# Make sure the interaction ray is enabled and configured correctly
 	interaction_ray.enabled = true
-	interaction_ray.collision_mask = 3  # Layer 1 (ground) and Layer 2 (resources)
+	interaction_ray.set_collision_mask_value(1, true)  # Layer 1 (ground)
+	interaction_ray.set_collision_mask_value(2, true)  # Layer 2 (resources)
 	
 	# Initialize crosshair
 	if !crosshair:
@@ -46,12 +49,15 @@ func _ready():
 	# Capture mouse
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 	print("Ground drone deployed - mouse captured for camera control")
+	var mask_str = ""
+	for i in range(1, 21):
+		mask_str += "1" if interaction_ray.get_collision_mask_value(i) else "0"
 	print("Interaction ray enabled: " + str(interaction_ray.enabled) + 
-		", collision mask: " + str(interaction_ray.collision_mask) + 
+		", collision mask: " + mask_str + 
 		", target position: " + str(interaction_ray.target_position))
 
 func _physics_process(delta):
-	# Update raycast based on camera direction
+	# Update interaction ray
 	update_interaction_ray()
 	
 	match current_state:
@@ -71,7 +77,8 @@ func _physics_process(delta):
 			velocity.y -= gravity * delta
 		move_and_slide()
 	
-	# Update crosshair based on what the ray is hitting
+	# Check for resources in view and update crosshair
+	check_resource_in_sight()
 	update_crosshair()
 
 func _input(event):
@@ -88,23 +95,50 @@ func _input(event):
 
 func update_interaction_ray():
 	# Ray always points forward from camera
-	interaction_ray.target_position = Vector3(0, 0, -5)  # 5 units forward
+	interaction_ray.target_position = Vector3(0, 0, -detection_distance)
+
+func check_resource_in_sight():
+	resource_in_sight = false
+	
+	# First check with raycast
+	if interaction_ray.is_colliding():
+		var collider = interaction_ray.get_collider()
+		if collider.is_in_group("resource") and current_cargo < max_cargo_capacity:
+			resource_in_sight = true
+			return
+	
+	# If raycast didn't find a resource, try the direct method
+	var forward = -camera.global_transform.basis.z.normalized()
+	var resources = get_tree().get_nodes_in_group("resource")
+	
+	for resource in resources:
+		# Calculate vector to resource
+		var to_resource = resource.global_position - camera.global_position
+		
+		# Project vector onto forward direction to get distance along ray
+		var distance_along_ray = to_resource.dot(forward)
+		
+		# Check if resource is in front of us and within detection range
+		if distance_along_ray > 0 and distance_along_ray < detection_distance:
+			# Calculate perpendicular distance from ray to resource
+			var projected_point = camera.global_position + forward * distance_along_ray
+			var perpendicular_distance = resource.global_position.distance_to(projected_point)
+			
+			# If within a reasonable cone angle (1.0 meter radius at detection_distance)
+			if perpendicular_distance < 1.0 * (distance_along_ray / detection_distance):
+				resource_in_sight = true
+				return
 
 func update_crosshair():
 	if !crosshair:
 		return
-		
-	if interaction_ray.is_colliding():
-		var collider = interaction_ray.get_collider()
-		if collider.is_in_group("resource") and current_cargo < max_cargo_capacity:
-			# Change crosshair to green when pointing at a collectable resource
-			crosshair.modulate = Color(0, 1, 0)  # Green
-		else:
-			# Change crosshair to yellow when pointing at a non-resource
-			crosshair.modulate = Color(1, 1, 0)  # Yellow
+	
+	if resource_in_sight and current_cargo < max_cargo_capacity:
+		# Change crosshair to yellow and brighter when pointing at a collectable resource
+		crosshair.modulate = Color(1.0, 1.0, 0.0, 1.0)  # Bright yellow
 	else:
-		# Default crosshair color when not pointing at anything
-		crosshair.modulate = Color(1, 1, 1)  # White
+		# Keep crosshair white for anything else (including ground)
+		crosshair.modulate = Color(1.0, 1.0, 1.0, 1.0)  # White
 
 func process_idle(_delta):
 	# Just a placeholder state - we start in DRIVING now
@@ -173,8 +207,16 @@ func process_docking(_delta):
 	complete_docking()
 
 func check_for_resource():
+	# First, try the raycast approach
+	if try_raycast_detection():
+		return
+	
+	# If raycast fails, try alternative approach - direct detection
+	try_direct_detection()
+
+func try_raycast_detection():
 	# Use raycast to detect resources
-	print("Checking for resources with interaction ray")
+	print("Attempting raycast detection...")
 	
 	# Debug ray position and direction
 	print("Ray origin: " + str(interaction_ray.global_position))
@@ -182,19 +224,74 @@ func check_for_resource():
 	
 	if interaction_ray.is_colliding():
 		var collider = interaction_ray.get_collider()
-		print("Ray hit: " + str(collider.name) + " of type " + str(collider.get_class()) + 
-			", collision layer: " + str(collider.collision_layer))
+		var collider_class = collider.get_class()
+		var collision_layer = collider.collision_layer
+		var is_resource = collider.is_in_group("resource")
 		
-		if collider.is_in_group("resource") and current_cargo < max_cargo_capacity:
-			print("Resource detected: ", collider.resource_type)
+		print("Ray hit: " + str(collider.name) + " of type " + str(collider_class) + 
+			", collision layer: " + str(collision_layer) + 
+			", is in resource group: " + str(is_resource))
+		
+		if is_resource and current_cargo < max_cargo_capacity:
+			print("Resource detected via raycast: ", collider.resource_type)
 			collect_resource(collider)
+			return true
 		else:
-			if collider.is_in_group("resource"):
+			if is_resource:
 				print("Hit a resource but cargo is full!")
+				return true
 			else:
 				print("Hit object is not a resource: " + str(collider.name))
 	else:
 		print("Interaction ray did not hit anything")
+	
+	return false
+
+func try_direct_detection():
+	print("Attempting direct detection...")
+	
+	# Get camera forward direction
+	var forward = -camera.global_transform.basis.z.normalized()
+	
+	# Check all nodes in the scene for resources
+	var closest_resource = null
+	var closest_distance = detection_distance
+	
+	# Get all resources in the scene
+	var resources = get_tree().get_nodes_in_group("resource")
+	print("Found " + str(resources.size()) + " resources in the scene")
+	
+	for resource in resources:
+		# Calculate vector to resource
+		var to_resource = resource.global_position - camera.global_position
+		
+		# Project vector onto forward direction to get distance along ray
+		var distance_along_ray = to_resource.dot(forward)
+		
+		# Check if resource is in front of us and within detection range
+		if distance_along_ray > 0 and distance_along_ray < detection_distance:
+			# Calculate perpendicular distance from ray to resource
+			var projected_point = camera.global_position + forward * distance_along_ray
+			var perpendicular_distance = resource.global_position.distance_to(projected_point)
+			
+			# If within a reasonable cone angle (1.0 meter radius at detection_distance)
+			if perpendicular_distance < 1.0 * (distance_along_ray / detection_distance):
+				print("Found resource " + resource.name + " at distance " + str(distance_along_ray) + 
+					", perpendicular distance " + str(perpendicular_distance))
+				
+				# Check if this is the closest resource so far
+				if distance_along_ray < closest_distance:
+					closest_resource = resource
+					closest_distance = distance_along_ray
+	
+	# Collect the closest resource if found
+	if closest_resource and current_cargo < max_cargo_capacity:
+		print("Resource detected via direct detection: ", closest_resource.resource_type)
+		collect_resource(closest_resource)
+		return true
+	
+	print("No resources detected via direct detection")
+	return false
 
 func collect_resource(resource_node):
 	# Check if there's space in cargo
