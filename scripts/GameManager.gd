@@ -60,15 +60,23 @@ func initialize_game():
 
 # Create and setup the pause menu
 func create_pause_menu():
+	# Create a dedicated CanvasLayer for the pause menu with high layer value
+	# This ensures it draws on top of all other CanvasLayers
+	var pause_canvas = CanvasLayer.new()
+	pause_canvas.layer = 10
+	add_child(pause_canvas)
+	
 	# Instance the pause menu scene
 	pause_menu = pause_menu_scene.instantiate()
-	$CanvasLayer.add_child(pause_menu)
+	
+	# Add it to our high-priority canvas layer
+	pause_canvas.add_child(pause_menu)
 	
 	# Connect signals
 	pause_menu.connect("resume_game", Callable(self, "_on_resume_game"))
 	pause_menu.connect("quit_game", Callable(self, "_on_quit_game"))
 	
-	print("Pause menu created and connected")
+	print("Pause menu created with dedicated high-priority CanvasLayer")
 
 # Pause/unpause the game
 func toggle_pause():
