@@ -10,20 +10,29 @@ extends CharacterBody3D
 @export var traction: float = 0.6
 @export var detection_distance: float = 5.0  # How far to check for resources
 
+# Collection Properties
+@export var collection_speed: float = 1.0  # Base collection speed (can be upgraded)
+
 # Resource Collection
 @export var max_cargo_capacity: int = 5
 var current_cargo: int = 0
 var collected_resources = {}  # Dictionary to track resource types and quantities
 
 # State Management
-enum DroneState {IDLE, DRIVING, COLLECTING, DOCKING}
+enum DroneState {IDLE, DRIVING, COLLECTING_ACTIVE, DOCKING}
 var current_state: DroneState = DroneState.DRIVING
+
+# Collection Progress Tracking
+var current_collection_target = null  # Reference to resource being collected
+var collection_progress: float = 0.0  # Progress from 0.0 to 1.0
+var collection_started: bool = false
 
 # References
 @onready var camera = $Camera3D
 @onready var cargo_indicator = $CanvasLayer/CargoIndicator
 @onready var interaction_ray = $Camera3D/InteractionRay
 @onready var crosshair = $CanvasLayer/Crosshair
+@onready var progress_indicator = $CanvasLayer/ProgressIndicator
 
 # Navigation
 var target_waypoint = null
@@ -34,6 +43,9 @@ func _ready():
 	# Initialize UI
 	update_cargo_display()
 	
+	# Hide progress indicator initially
+	progress_indicator.visible = false
+	
 	# Start directly in driving mode
 	current_state = DroneState.DRIVING
 	
@@ -42,19 +54,9 @@ func _ready():
 	interaction_ray.set_collision_mask_value(1, true)  # Layer 1 (ground)
 	interaction_ray.set_collision_mask_value(2, true)  # Layer 2 (resources)
 	
-	# Initialize crosshair
-	if !crosshair:
-		print("ERROR: Crosshair not found. Add Crosshair to CanvasLayer.")
-	
 	# Capture mouse
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 	print("Ground drone deployed - mouse captured for camera control")
-	var mask_str = ""
-	for i in range(1, 21):
-		mask_str += "1" if interaction_ray.get_collision_mask_value(i) else "0"
-	print("Interaction ray enabled: " + str(interaction_ray.enabled) + 
-		", collision mask: " + mask_str + 
-		", target position: " + str(interaction_ray.target_position))
 
 func _physics_process(delta):
 	# Update interaction ray
@@ -65,13 +67,13 @@ func _physics_process(delta):
 			process_idle(delta)
 		DroneState.DRIVING:
 			process_driving(delta)
-		DroneState.COLLECTING:
-			process_collecting(delta)
+		DroneState.COLLECTING_ACTIVE:
+			process_collecting_active(delta)
 		DroneState.DOCKING:
 			process_docking(delta)
 	
 	# Apply movement except when collecting
-	if current_state != DroneState.COLLECTING:
+	if current_state != DroneState.COLLECTING_ACTIVE:
 		# Apply gravity
 		if not is_on_floor():
 			velocity.y -= gravity * delta
@@ -92,6 +94,16 @@ func _input(event):
 		current_tilt -= event.relative.y * mouse_sensitivity
 		current_tilt = clamp(current_tilt, -PI/3, PI/3) # Limit to 45 degrees up/down
 		camera.rotation.x = current_tilt
+	
+	# Resource collection input (left mouse button)
+	if current_state == DroneState.DRIVING and event is InputEventMouseButton:
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			if event.pressed and resource_in_sight and current_cargo < max_cargo_capacity:
+				# Start collection when left mouse button is pressed
+				start_collection()
+			elif !event.pressed and current_state == DroneState.COLLECTING_ACTIVE:
+				# Cancel collection when left mouse button is released
+				cancel_collection()
 
 func update_interaction_ray():
 	# Ray always points forward from camera
@@ -99,17 +111,27 @@ func update_interaction_ray():
 
 func check_resource_in_sight():
 	resource_in_sight = false
+	var resource = get_resource_in_sight()
 	
+	if resource != null and current_cargo < max_cargo_capacity:
+		resource_in_sight = true
+		return resource
+	
+	return null
+
+func get_resource_in_sight():
 	# First check with raycast
 	if interaction_ray.is_colliding():
 		var collider = interaction_ray.get_collider()
 		if collider.is_in_group("resource") and current_cargo < max_cargo_capacity:
-			resource_in_sight = true
-			return
+			return collider
 	
 	# If raycast didn't find a resource, try the direct method
 	var forward = -camera.global_transform.basis.z.normalized()
 	var resources = get_tree().get_nodes_in_group("resource")
+	
+	var closest_resource = null
+	var closest_distance = detection_distance
 	
 	for resource in resources:
 		# Calculate vector to resource
@@ -126,19 +148,48 @@ func check_resource_in_sight():
 			
 			# If within a reasonable cone angle (1.0 meter radius at detection_distance)
 			if perpendicular_distance < 1.0 * (distance_along_ray / detection_distance):
-				resource_in_sight = true
-				return
+				# Check if this is the closest resource so far
+				if distance_along_ray < closest_distance:
+					closest_resource = resource
+					closest_distance = distance_along_ray
+	
+	return closest_resource
 
 func update_crosshair():
 	if !crosshair:
 		return
 	
 	if resource_in_sight and current_cargo < max_cargo_capacity:
-		# Change crosshair to yellow and brighter when pointing at a collectable resource
-		crosshair.modulate = Color(1.0, 1.0, 0.0, 1.0)  # Bright yellow
+		# Change crosshair to yellow when pointing at a collectable resource
+		crosshair.modulate = Color(1.0, 1.0, 0.0, 1.0)  # Yellow
 	else:
 		# Keep crosshair white for anything else (including ground)
 		crosshair.modulate = Color(1.0, 1.0, 1.0, 1.0)  # White
+
+func update_progress_indicator(progress: float, max_segments: int):
+	if !progress_indicator:
+		print("Progress indicator not found!")
+		return
+	
+	# Check if the methods exist before calling them
+	if progress_indicator.has_method("set_progress_value"):
+		progress_indicator.set_progress_value(progress * 100.0)
+	else:
+		# Direct property assignment as fallback
+		progress_indicator.value = progress * 100.0
+	
+	if progress_indicator.has_method("set_segment_count"):
+		progress_indicator.set_segment_count(max_segments)
+	elif progress_indicator.has_method("set_segments"):
+		progress_indicator.set_segments(max_segments)
+	
+	# Update color based on progress (yellow to green)
+	var green_component = 1.0  # Always max
+	var red_component = 1.0 - (progress * 0.5)  # Reduces from 1.0 to 0.5
+	
+	# Safe property access
+	if "tint_progress" in progress_indicator:
+		progress_indicator.tint_progress = Color(red_component, green_component, 0.0, 1.0)
 
 func process_idle(_delta):
 	# Just a placeholder state - we start in DRIVING now
@@ -172,27 +223,124 @@ func process_driving(delta):
 			velocity.x = 0.0
 			velocity.z = 0.0
 	
-	# Check for resource interaction
-	if Input.is_action_just_pressed("interact"):
-		print("Interaction button pressed")
-		check_for_resource()
-	
 	# Check for docking
 	if Input.is_action_just_pressed("dock") and is_near_base():
 		print("Docking initiated")
 		current_state = DroneState.DOCKING
 
-func process_collecting(_delta):
-	# Resource collection animation/process
-	velocity = Vector3.ZERO
+func start_collection():
+	# Get the resource we're looking at
+	var resource = get_resource_in_sight()
+	if !resource:
+		return
 	
-	# Collection would have an animation and timing
-	# For demo purposes, we'll use a timer
-	await get_tree().create_timer(1.5).timeout
+	print("Starting collection of " + resource.resource_type)
+	
+	# If target has changed, reset progress
+	if current_collection_target != resource:
+		current_collection_target = resource
+		collection_progress = resource.collection_progress  # Get saved progress
+		
+	# Set up collection state
+	current_state = DroneState.COLLECTING_ACTIVE
+	collection_started = true
+	
+	# Show progress indicator
+	progress_indicator.visible = true
+	
+	# Update progress indicator with segments based on resource amount
+	update_progress_indicator(collection_progress, resource.resource_amount)
+	
+	# Stop movement
+	velocity = Vector3.ZERO
+
+func process_collecting_active(delta):
+	if !current_collection_target or !collection_started:
+		cancel_collection()
+		return
+	
+	# Ensure resource is still valid and in range
+	if !is_instance_valid(current_collection_target) or current_collection_target.resource_amount <= 0:
+		complete_collection()
+		return
+	
+	# Calculate progress increment based on collection speed and time
+	var progress_increment = delta * collection_speed / current_collection_target.resource_amount
+	collection_progress += progress_increment
+	
+	# Update progress indicator
+	update_progress_indicator(collection_progress, current_collection_target.resource_amount)
+	
+	# Check if a unit is collected (progress reaches or exceeds 1.0)
+	if collection_progress >= 1.0:
+		# Collect one unit
+		add_resource_to_cargo(current_collection_target.resource_type, 1)
+		
+		# Reduce resource amount
+		current_collection_target.resource_amount -= 1
+		
+		# Save progress to resource
+		current_collection_target.collection_progress = 0.0
+		
+		# Reset progress for next unit
+		collection_progress = 0.0
+		
+		print("Collected one unit of " + current_collection_target.resource_type)
+		
+		# Check if all resources are depleted
+		if current_collection_target.resource_amount <= 0:
+			print("Resource depleted completely")
+			current_collection_target.collect()  # Trigger final collection animation
+			complete_collection()
+			return
+	else:
+		# Save current progress to resource
+		current_collection_target.collection_progress = collection_progress
+
+func cancel_collection():
+	print("Collection canceled")
+	
+	# Save current progress to resource if it exists
+	if current_collection_target and is_instance_valid(current_collection_target):
+		current_collection_target.collection_progress = collection_progress
+	
+	# Reset collection variables
+	collection_started = false
+	
+	# Hide progress indicator
+	progress_indicator.visible = false
 	
 	# Return to driving state
 	current_state = DroneState.DRIVING
-	print("Collection complete, returning to driving mode")
+
+func complete_collection():
+	print("Collection complete")
+	
+	# Reset collection variables
+	collection_started = false
+	current_collection_target = null
+	collection_progress = 0.0
+	
+	# Hide progress indicator
+	progress_indicator.visible = false
+	
+	# Return to driving state
+	current_state = DroneState.DRIVING
+
+func add_resource_to_cargo(resource_type, amount):
+	# Add resource to inventory
+	if resource_type in collected_resources:
+		collected_resources[resource_type] += amount
+	else:
+		collected_resources[resource_type] = amount
+	
+	# Update cargo count
+	current_cargo += amount
+	
+	# Update UI
+	update_cargo_display()
+	
+	print("Added " + str(amount) + " " + resource_type + " to cargo")
 
 func process_docking(_delta):
 	# Docking logic - move toward docking point
@@ -205,122 +353,6 @@ func process_docking(_delta):
 	# Release mouse when returning to base
 	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 	complete_docking()
-
-func check_for_resource():
-	# First, try the raycast approach
-	if try_raycast_detection():
-		return
-	
-	# If raycast fails, try alternative approach - direct detection
-	try_direct_detection()
-
-func try_raycast_detection():
-	# Use raycast to detect resources
-	print("Attempting raycast detection...")
-	
-	# Debug ray position and direction
-	print("Ray origin: " + str(interaction_ray.global_position))
-	print("Ray target: " + str(interaction_ray.global_position + interaction_ray.target_position))
-	
-	if interaction_ray.is_colliding():
-		var collider = interaction_ray.get_collider()
-		var collider_class = collider.get_class()
-		var collision_layer = collider.collision_layer
-		var is_resource = collider.is_in_group("resource")
-		
-		print("Ray hit: " + str(collider.name) + " of type " + str(collider_class) + 
-			", collision layer: " + str(collision_layer) + 
-			", is in resource group: " + str(is_resource))
-		
-		if is_resource and current_cargo < max_cargo_capacity:
-			print("Resource detected via raycast: ", collider.resource_type)
-			collect_resource(collider)
-			return true
-		else:
-			if is_resource:
-				print("Hit a resource but cargo is full!")
-				return true
-			else:
-				print("Hit object is not a resource: " + str(collider.name))
-	else:
-		print("Interaction ray did not hit anything")
-	
-	return false
-
-func try_direct_detection():
-	print("Attempting direct detection...")
-	
-	# Get camera forward direction
-	var forward = -camera.global_transform.basis.z.normalized()
-	
-	# Check all nodes in the scene for resources
-	var closest_resource = null
-	var closest_distance = detection_distance
-	
-	# Get all resources in the scene
-	var resources = get_tree().get_nodes_in_group("resource")
-	print("Found " + str(resources.size()) + " resources in the scene")
-	
-	for resource in resources:
-		# Calculate vector to resource
-		var to_resource = resource.global_position - camera.global_position
-		
-		# Project vector onto forward direction to get distance along ray
-		var distance_along_ray = to_resource.dot(forward)
-		
-		# Check if resource is in front of us and within detection range
-		if distance_along_ray > 0 and distance_along_ray < detection_distance:
-			# Calculate perpendicular distance from ray to resource
-			var projected_point = camera.global_position + forward * distance_along_ray
-			var perpendicular_distance = resource.global_position.distance_to(projected_point)
-			
-			# If within a reasonable cone angle (1.0 meter radius at detection_distance)
-			if perpendicular_distance < 1.0 * (distance_along_ray / detection_distance):
-				print("Found resource " + resource.name + " at distance " + str(distance_along_ray) + 
-					", perpendicular distance " + str(perpendicular_distance))
-				
-				# Check if this is the closest resource so far
-				if distance_along_ray < closest_distance:
-					closest_resource = resource
-					closest_distance = distance_along_ray
-	
-	# Collect the closest resource if found
-	if closest_resource and current_cargo < max_cargo_capacity:
-		print("Resource detected via direct detection: ", closest_resource.resource_type)
-		collect_resource(closest_resource)
-		return true
-	
-	print("No resources detected via direct detection")
-	return false
-
-func collect_resource(resource_node):
-	# Check if there's space in cargo
-	if current_cargo >= max_cargo_capacity:
-		print("Cargo full!")
-		return
-	
-	# Start collection process
-	current_state = DroneState.COLLECTING
-	
-	# Get resource information
-	var resource_type = resource_node.resource_type
-	var resource_amount = resource_node.resource_amount
-	
-	# Add to cargo inventory
-	if resource_type in collected_resources:
-		collected_resources[resource_type] += resource_amount
-	else:
-		collected_resources[resource_type] = resource_amount
-	
-	current_cargo += resource_amount
-	
-	# Update UI
-	update_cargo_display()
-	
-	# Remove resource from world
-	resource_node.collect()
-	
-	print("Collected " + str(resource_amount) + " " + resource_type)
 
 func update_cargo_display():
 	# Update UI cargo indicator

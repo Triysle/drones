@@ -158,7 +158,7 @@ func process_scanning(delta):
 		current_state = DroneState.FLYING
 		print("Scan complete, returning to flight mode")
 
-func process_docking(delta):
+func process_docking(_delta):
 	# Docking logic - move toward docking point
 	velocity = Vector3.ZERO
 	print("Docking sequence in progress")
@@ -170,7 +170,7 @@ func process_docking(delta):
 	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 	complete_docking()
 
-func process_depleted(delta):
+func process_depleted(_delta):
 	# Drone slowly descends when battery depleted
 	velocity.x = 0
 	velocity.z = 0

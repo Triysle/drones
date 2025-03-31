@@ -5,6 +5,9 @@ extends StaticBody3D
 @export var resource_amount: int = 1
 @export var scan_visible: bool = true  # Can be detected by aerial drone scanner
 
+# Collection progress (persistent between collection attempts)
+var collection_progress: float = 0.0
+
 # Visual components
 @onready var mesh = $Mesh
 @onready var collision_shape = $CollisionShape3D
@@ -15,7 +18,7 @@ func _ready():
 	# Add to resource group for easy detection
 	add_to_group("resource")
 	
-	# IMPORTANT: Set the collision layer explicitly (this is key)
+	# Set the collision layer explicitly
 	set_collision_layer_value(1, false) # Disable layer 1
 	set_collision_layer_value(2, true)  # Enable layer 2 for resources
 	
@@ -48,7 +51,7 @@ func highlight_as_scanned():
 
 # When collected by ground drone
 func collect():
-	print("Resource collection started for: " + resource_type)
+	print("Resource collection finalized for: " + resource_type)
 	
 	# Play collection effect
 	collection_particles.emitting = true
