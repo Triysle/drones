@@ -85,7 +85,7 @@ func spawn_resources():
 	var resource_types = ["ScrapMetal", "PowerCell", "ElectronicParts", "RareMetal"]
 	var rarity_weights = [0.6, 0.25, 0.1, 0.05]  # Higher number = more common
 	
-	print("Spawning resources:")
+	print("Spawning resources...")
 	
 	for point in spawn_points:
 		# Select resource type based on rarity
@@ -109,8 +109,8 @@ func spawn_resources():
 				resource.resource_amount = randi_range(1, 2)
 			"RareMetal":
 				resource.resource_amount = 1
-		
-		print("- Spawned " + resource_type + " at " + str(point))
+	
+	print("Spawned " + str(spawn_points.size()) + " resources")
 
 func get_resource_spawn_points():
 	# In full implementation, this would get points from the environment

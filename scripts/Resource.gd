@@ -18,6 +18,9 @@ func _ready():
 	# Initialize visual components
 	scan_highlight.visible = false
 	
+	# Debugging
+	print("Resource initialized: " + resource_type + " (amount: " + str(resource_amount) + ")")
+	
 	# Set different appearance based on resource type
 	match resource_type:
 		"ScrapMetal":
@@ -36,14 +39,12 @@ func _ready():
 # When detected by aerial drone scanner
 func highlight_as_scanned():
 	scan_highlight.visible = true
-	
-	# Make it visible on minimap
-	# (Would be implemented in full game)
-	
 	print(resource_type + " detected")
 
 # When collected by ground drone
 func collect():
+	print("Resource collection started for: " + resource_type)
+	
 	# Play collection effect
 	collection_particles.emitting = true
 	
@@ -52,8 +53,12 @@ func collect():
 	collision_shape.disabled = true
 	scan_highlight.visible = false
 	
+	print("Resource visuals hidden, waiting for particles...")
+	
 	# Wait for particles to finish
 	await get_tree().create_timer(1.5).timeout
+	
+	print("Resource being removed from scene")
 	
 	# Remove from game
 	queue_free()

@@ -21,7 +21,9 @@ shape = SubResource("BoxShape3D_86fod")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.580738, -1.36761)
 
 [node name="InteractionRay" type="RayCast3D" parent="Camera3D"]
-target_position = Vector3(0, 0, -3)
+target_position = Vector3(0, -0.5, -5)
+debug_shape_custom_color = Color(1, 0, 0, 1)
+debug_shape_thickness = 5
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 

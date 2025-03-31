@@ -95,10 +95,6 @@ func process_flying(delta):
 	input_dir.x = Input.get_axis("move_left", "move_right")
 	input_dir.y = Input.get_axis("move_forward", "move_backward")
 	
-	# Debug print
-	if input_dir != Vector2.ZERO:
-		print("Input detected: ", input_dir)
-	
 	# Get vertical input
 	vertical_input = Input.get_axis("descend", "ascend")
 	
@@ -122,10 +118,6 @@ func process_flying(delta):
 		if (vertical_input > 0 and global_position.y < max_altitude) or \
 		   (vertical_input < 0 and global_position.y > min_altitude):
 			velocity.y = vertical_input * vertical_speed
-			if vertical_input > 0:
-				print("Ascending")
-			else:
-				print("Descending")
 		else:
 			velocity.y = move_toward(velocity.y, 0, deceleration * delta)
 	else:
@@ -197,8 +189,8 @@ func drain_battery(delta):
 		current_state = DroneState.DEPLETED
 		print("Battery fully depleted!")
 	elif current_battery <= low_battery_threshold:
-		# Visual/audio warning could be triggered here
-		if int(current_battery) % 5 == 0:  # Only print every 5 units to avoid spam
+		# Only print warning occasionally to reduce spam
+		if int(current_battery) % 5 == 0 and fmod(current_battery, 1.0) < delta * battery_drain_rate:
 			print("Low battery warning: ", int(current_battery))
 
 func update_battery_display():

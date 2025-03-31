@@ -119,7 +119,7 @@ func deploy_aerial_drone():
 	# Update status
 	mission_status.text = "Aerial Drone Deployed: Scan for Resources"
 	
-	print("Aerial drone deployed - ready for control with WASD, Space/Shift to ascend/descend, F to scan")
+	print("Aerial drone deployed - use WASD, Space/Shift to ascend/descend, F to scan")
 
 func deploy_ground_drone():
 	current_state = GameState.GROUND_DEPLOYMENT
@@ -151,7 +151,7 @@ func deploy_ground_drone():
 	# Update status
 	mission_status.text = "Ground Drone Deployed: Collect Resources"
 	
-	print("Ground drone deployed - ready for control with WASD, F to interact with resources")
+	print("Ground drone deployed - use WASD, F to interact with resources")
 
 func recall_active_drone():
 	# Emergency recall function
@@ -168,8 +168,6 @@ func apply_aerial_upgrades(drone):
 	
 	drone.scan_range = 20.0 * aerial_drone_upgrades["scan_range"]
 	drone.max_speed = 10.0 * aerial_drone_upgrades["speed"]
-	
-	print("Applied aerial drone upgrades")
 
 func apply_ground_upgrades(drone):
 	# Apply upgrade levels to drone properties
@@ -179,8 +177,6 @@ func apply_ground_upgrades(drone):
 	# Terrain handling would affect physics properties
 	var _terrain_level = ground_drone_upgrades["terrain_handling"]
 	# For example: drone.terrain_check_height = base_height * _terrain_level
-	
-	print("Applied ground drone upgrades")
 
 func update_resource_display():
 	# Update UI with current resource counts

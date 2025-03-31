@@ -1,6 +1,7 @@
 [gd_scene load_steps=9 format=3 uid="uid://df450jh25fs0o"]
 
 [ext_resource type="Script" uid="uid://cyr8o20l1f1jm" path="res://scripts/Resource.gd" id="1_4lt4o"]
+[ext_resource type="Material" uid="uid://bw05qmf8twkfe" path="res://assets/spark.tres" id="2_avugf"]
 
 [sub_resource type="SphereMesh" id="SphereMesh_jbho7"]
 
@@ -18,20 +19,16 @@ radius = 0.6
 height = 1.2
 
 [sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_jbho7"]
+emission_shape = 2
+emission_sphere_radius = 0.5
 direction = Vector3(0, 0, 0)
 spread = 180.0
 initial_velocity_min = 2.0
 initial_velocity_max = 3.0
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_4lt4o"]
-albedo_color = Color(1, 1, 0, 1)
-emission_enabled = true
-emission = Color(1, 0, 0, 1)
-
-[sub_resource type="SphereMesh" id="SphereMesh_avugf"]
-material = SubResource("StandardMaterial3D_4lt4o")
-radius = 0.01
-height = 0.02
+[sub_resource type="QuadMesh" id="QuadMesh_fejse"]
+material = ExtResource("2_avugf")
+size = Vector2(0.01, 0.03)
 
 [node name="Resource" type="StaticBody3D"]
 script = ExtResource("1_4lt4o")
@@ -47,5 +44,6 @@ mesh = SubResource("SphereMesh_fejse")
 skeleton = NodePath("../CollisionShape3D")
 
 [node name="CollectionParticles" type="GPUParticles3D" parent="."]
+transform_align = 1
 process_material = SubResource("ParticleProcessMaterial_jbho7")
-draw_pass_1 = SubResource("SphereMesh_avugf")
+draw_pass_1 = SubResource("QuadMesh_fejse")

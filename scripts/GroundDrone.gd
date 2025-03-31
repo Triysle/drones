@@ -2,11 +2,12 @@ extends CharacterBody3D
 
 # Ground Drone Properties
 @export var max_speed: float = 7.0
-@export var acceleration: float = 3.0
-@export var deceleration: float = 5.0
+@export var acceleration: float = 4.0  # Good middle ground for responsiveness
+@export var deceleration: float = 7.0  # Higher than original but not too high
 @export var rotation_speed: float = 1.5
 @export var gravity: float = 20.0
 @export var mouse_sensitivity: float = 0.002
+@export var traction: float = 0.6  # Reduced for some drift (0-1, higher = more grip)
 
 # Resource Collection
 @export var max_cargo_capacity: int = 5
@@ -33,11 +34,19 @@ func _ready():
 	# Start directly in driving mode
 	current_state = DroneState.DRIVING
 	
+	# Make sure the interaction ray is enabled and long enough
+	interaction_ray.enabled = true
+	interaction_ray.target_position = Vector3(0, 0, -5)  # Make the ray longer (5 instead of 3)
+	
 	# Capture mouse
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 	print("Ground drone deployed - mouse captured for camera control")
+	print("Interaction ray enabled: " + str(interaction_ray.enabled) + ", target position: " + str(interaction_ray.target_position))
 
 func _physics_process(delta):
+	# Make sure the interaction ray is correctly positioned
+	interaction_ray.target_position = Vector3(0, -0.5, -5)  # Aim slightly downward to hit resources
+	
 	match current_state:
 		DroneState.IDLE:
 			process_idle(delta)
@@ -73,12 +82,8 @@ func process_idle(_delta):
 
 func process_driving(delta):
 	# Get movement input - WASD controls
-	var input_forward = Input.get_axis("move_forward", "move_backward")  # Corrected order
-	var input_right = Input.get_axis("move_left", "move_right")  # Back to original order
-	
-	# Debug print
-	if input_forward != 0 or input_right != 0:
-		print("Ground drone input - Forward:", input_forward, " Right:", input_right)
+	var input_forward = Input.get_axis("move_forward", "move_backward")
+	var input_right = Input.get_axis("move_left", "move_right")
 	
 	# Calculate movement direction (relative to drone orientation)
 	var direction = Vector3.ZERO
@@ -88,12 +93,20 @@ func process_driving(delta):
 	# Normalize for consistent speed in all directions
 	if direction.length_squared() > 0:
 		direction = direction.normalized()
-		velocity.x = direction.x * max_speed
-		velocity.z = direction.z * max_speed
+		var target_velocity = Vector3(direction.x * max_speed, 0, direction.z * max_speed)
+		
+		# Apply acceleration but allow for some drift
+		velocity.x = lerp(velocity.x, target_velocity.x, acceleration * delta)
+		velocity.z = lerp(velocity.z, target_velocity.z, acceleration * delta)
 	else:
-		# Decelerate when no input
-		velocity.x = move_toward(velocity.x, 0, deceleration * delta)
-		velocity.z = move_toward(velocity.z, 0, deceleration * delta)
+		# Apply gentler deceleration when no input to allow for drift
+		velocity.x = lerp(velocity.x, 0.0, deceleration * delta * traction)
+		velocity.z = lerp(velocity.z, 0.0, deceleration * delta * traction)
+		
+		# Only fully stop at very low speeds
+		if abs(velocity.x) < 0.05 and abs(velocity.z) < 0.05:
+			velocity.x = 0.0
+			velocity.z = 0.0
 	
 	# Check for resource interaction
 	if Input.is_action_just_pressed("interact"):
@@ -131,15 +144,26 @@ func process_docking(_delta):
 
 func check_for_resource():
 	# Use raycast to detect resources
+	print("Checking for resources with interaction ray")
+	
+	# Debug ray position and direction
+	print("Ray origin: " + str(interaction_ray.global_position))
+	print("Ray target: " + str(interaction_ray.global_position + interaction_ray.target_position))
+	
 	if interaction_ray.is_colliding():
 		var collider = interaction_ray.get_collider()
+		print("Ray hit: " + str(collider.name) + " of type " + str(collider.get_class()))
+		
 		if collider.is_in_group("resource") and current_cargo < max_cargo_capacity:
 			print("Resource detected: ", collider.resource_type)
 			collect_resource(collider)
 		else:
-			print("Raycast hit: ", collider.name, " (not a resource or cargo full)")
+			if collider.is_in_group("resource"):
+				print("Hit a resource but cargo is full!")
+			else:
+				print("Hit object is not a resource: " + str(collider.name))
 	else:
-		print("No object detected by interaction ray")
+		print("Interaction ray did not hit anything")
 
 func collect_resource(resource_node):
 	# Check if there's space in cargo
