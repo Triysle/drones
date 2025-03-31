@@ -1,6 +1,7 @@
-[gd_scene load_steps=4 format=3 uid="uid://hm58txnl0i6t"]
+[gd_scene load_steps=5 format=3 uid="uid://hm58txnl0i6t"]
 
 [ext_resource type="Script" uid="uid://dwa8xcq5kittb" path="res://scripts/GroundDrone.gd" id="1_86fod"]
+[ext_resource type="Texture2D" uid="uid://cxa75dbsddirm" path="res://assets/crosshair-texture.svg" id="2_blo87"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_vw06u"]
 size = Vector3(2, 0.5, 3)
@@ -21,7 +22,8 @@ shape = SubResource("BoxShape3D_86fod")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.580738, -1.36761)
 
 [node name="InteractionRay" type="RayCast3D" parent="Camera3D"]
-target_position = Vector3(0, -0.5, -5)
+target_position = Vector3(0, 0, -5)
+collision_mask = 4
 debug_shape_custom_color = Color(1, 0, 0, 1)
 debug_shape_thickness = 5
 
@@ -33,3 +35,17 @@ offset_left = 20.0
 offset_top = 20.0
 offset_right = 320.0
 offset_bottom = 47.0
+
+[node name="TextureRect" type="TextureRect" parent="CanvasLayer"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("2_blo87")

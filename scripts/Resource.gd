@@ -15,11 +15,11 @@ func _ready():
 	# Add to resource group for easy detection
 	add_to_group("resource")
 	
+	# Set collision layer to 2 (layer 2 will be for resources)
+	collision_layer = 2
+	
 	# Initialize visual components
 	scan_highlight.visible = false
-	
-	# Debugging
-	print("Resource initialized: " + resource_type + " (amount: " + str(resource_amount) + ")")
 	
 	# Set different appearance based on resource type
 	match resource_type:
@@ -35,6 +35,8 @@ func _ready():
 		"RareMetal":
 			# Shiny gold color
 			$Mesh.material_override = get_material_for_type("RareMetal")
+			
+	print("Resource initialized: " + resource_type + " (amount: " + str(resource_amount) + ", collision layer: " + str(collision_layer) + ")")
 
 # When detected by aerial drone scanner
 func highlight_as_scanned():

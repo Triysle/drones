@@ -2,12 +2,12 @@ extends CharacterBody3D
 
 # Ground Drone Properties
 @export var max_speed: float = 7.0
-@export var acceleration: float = 4.0  # Good middle ground for responsiveness
-@export var deceleration: float = 7.0  # Higher than original but not too high
+@export var acceleration: float = 4.0
+@export var deceleration: float = 7.0
 @export var rotation_speed: float = 1.5
 @export var gravity: float = 20.0
 @export var mouse_sensitivity: float = 0.002
-@export var traction: float = 0.6  # Reduced for some drift (0-1, higher = more grip)
+@export var traction: float = 0.6
 
 # Resource Collection
 @export var max_cargo_capacity: int = 5
@@ -22,6 +22,7 @@ var current_state: DroneState = DroneState.DRIVING
 @onready var camera = $Camera3D
 @onready var cargo_indicator = $CanvasLayer/CargoIndicator
 @onready var interaction_ray = $Camera3D/InteractionRay
+@onready var crosshair = $CanvasLayer/Crosshair
 
 # Navigation
 var target_waypoint = null
@@ -34,18 +35,24 @@ func _ready():
 	# Start directly in driving mode
 	current_state = DroneState.DRIVING
 	
-	# Make sure the interaction ray is enabled and long enough
+	# Make sure the interaction ray is enabled and set to the right collision mask
 	interaction_ray.enabled = true
-	interaction_ray.target_position = Vector3(0, 0, -5)  # Make the ray longer (5 instead of 3)
+	interaction_ray.collision_mask = 3  # Layer 1 (ground) and Layer 2 (resources)
+	
+	# Initialize crosshair
+	if !crosshair:
+		print("ERROR: Crosshair not found. Add Crosshair to CanvasLayer.")
 	
 	# Capture mouse
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 	print("Ground drone deployed - mouse captured for camera control")
-	print("Interaction ray enabled: " + str(interaction_ray.enabled) + ", target position: " + str(interaction_ray.target_position))
+	print("Interaction ray enabled: " + str(interaction_ray.enabled) + 
+		", collision mask: " + str(interaction_ray.collision_mask) + 
+		", target position: " + str(interaction_ray.target_position))
 
 func _physics_process(delta):
-	# Make sure the interaction ray is correctly positioned
-	interaction_ray.target_position = Vector3(0, -0.5, -5)  # Aim slightly downward to hit resources
+	# Update raycast based on camera direction
+	update_interaction_ray()
 	
 	match current_state:
 		DroneState.IDLE:
@@ -63,6 +70,9 @@ func _physics_process(delta):
 		if not is_on_floor():
 			velocity.y -= gravity * delta
 		move_and_slide()
+	
+	# Update crosshair based on what the ray is hitting
+	update_crosshair()
 
 func _input(event):
 	# Mouse look when driving
@@ -75,6 +85,26 @@ func _input(event):
 		current_tilt -= event.relative.y * mouse_sensitivity
 		current_tilt = clamp(current_tilt, -PI/3, PI/3) # Limit to 45 degrees up/down
 		camera.rotation.x = current_tilt
+
+func update_interaction_ray():
+	# Ray always points forward from camera
+	interaction_ray.target_position = Vector3(0, 0, -5)  # 5 units forward
+
+func update_crosshair():
+	if !crosshair:
+		return
+		
+	if interaction_ray.is_colliding():
+		var collider = interaction_ray.get_collider()
+		if collider.is_in_group("resource") and current_cargo < max_cargo_capacity:
+			# Change crosshair to green when pointing at a collectable resource
+			crosshair.modulate = Color(0, 1, 0)  # Green
+		else:
+			# Change crosshair to yellow when pointing at a non-resource
+			crosshair.modulate = Color(1, 1, 0)  # Yellow
+	else:
+		# Default crosshair color when not pointing at anything
+		crosshair.modulate = Color(1, 1, 1)  # White
 
 func process_idle(_delta):
 	# Just a placeholder state - we start in DRIVING now
@@ -152,7 +182,8 @@ func check_for_resource():
 	
 	if interaction_ray.is_colliding():
 		var collider = interaction_ray.get_collider()
-		print("Ray hit: " + str(collider.name) + " of type " + str(collider.get_class()))
+		print("Ray hit: " + str(collider.name) + " of type " + str(collider.get_class()) + 
+			", collision layer: " + str(collider.collision_layer))
 		
 		if collider.is_in_group("resource") and current_cargo < max_cargo_capacity:
 			print("Resource detected: ", collider.resource_type)
