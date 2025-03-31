@@ -6,7 +6,7 @@ extends Control
 @export var radius: float = 40.0
 @export var thickness: float = 8.0
 @export var bg_color: Color = Color(0.2, 0.2, 0.2, 0.5)
-@export var tint_progress: Color = Color(1.0, 1.0, 0.0, 1.0)
+@export var fill_color: Color = Color(0.0, 1.0, 0.0, 1.0)  # Green by default
 @export var max_value: float = 100.0
 @export var value: float = 0.0
 
@@ -14,13 +14,10 @@ var num_segments: int = 1
 var segment_angles = []  # Array to store segment boundaries
 
 func _ready():
-	# Hide initially
-	visible = false
-	
 	# Set default size to ensure visibility
 	custom_minimum_size = Vector2(100, 100)
 	
-	# Set up segments
+	# Setup initial segments
 	set_segments(1)
 
 func _draw():
@@ -29,16 +26,32 @@ func _draw():
 	# Draw background circle
 	draw_arc(center, radius, 0, TAU, 32, bg_color, thickness)
 	
-	# Calculate progress angle
-	var progress_angle = (value / max_value) * TAU
+	# Start angle is -PI/2 (12 o'clock)
+	var start_angle = -PI/2
 	
-	# Draw progress arc
-	if progress_angle > 0:
-		draw_arc(center, radius, 0, progress_angle, 32, tint_progress, thickness)
+	# We draw a full circle and subtract the progress
+	# This makes it look like the circle is depleting as progress increases
+	if value < max_value:
+		var progress_ratio = value / max_value  # How much is completed (0.0 to 1.0)
+		var remaining_ratio = 1.0 - progress_ratio  # How much is remaining (1.0 to 0.0)
+		var end_angle = start_angle + (TAU * remaining_ratio)
+		
+		# Draw the filled arc (what's remaining)
+		draw_arc(center, radius, start_angle, end_angle, 32, fill_color, thickness)
+	else:
+		# Draw nothing if fully depleted
+		pass
 	
-	# Draw segment dividers if we have more than one segment
+	# Draw segment dividers
 	if num_segments > 1:
-		for angle in segment_angles:
+		# Always draw a marker at 12 o'clock
+		var top_marker_start = center + Vector2(0, -radius - thickness/2)
+		var top_marker_end = center + Vector2(0, -radius + thickness/2)
+		draw_line(top_marker_start, top_marker_end, Color(0.0, 0.0, 0.0, 0.8), 2.0)
+		
+		# Draw other segment markers
+		for i in range(1, num_segments):
+			var angle = start_angle + (float(i) / num_segments) * TAU
 			var start_point = center + Vector2(cos(angle), sin(angle)) * (radius - thickness/2)
 			var end_point = center + Vector2(cos(angle), sin(angle)) * (radius + thickness/2)
 			draw_line(start_point, end_point, Color(0.0, 0.0, 0.0, 0.8), 2.0)
@@ -49,31 +62,19 @@ func set_segments(num):
 	
 	# Calculate segment angles
 	for i in range(1, num_segments):
-		var angle = (float(i) / num_segments) * TAU
+		var angle = (-PI/2) + (float(i) / num_segments) * TAU
 		segment_angles.append(angle)
 	
 	# Force redraw
 	queue_redraw()
 
-func set_value(val):
-	value = clamp(val, 0, max_value)
-	queue_redraw()
-
-func _notification(what):
-	if what == NOTIFICATION_RESIZED:
-		# Center the indicator in its parent control
-		position = Vector2(size.x / 2, size.y / 2)
-
-# This is what we want to call from the ground drone
 func set_progress_value(val):
 	value = clamp(val, 0, max_value)
 	queue_redraw()
 
-# This is what we want to call to set segments
 func set_segment_count(num):
 	set_segments(num)
 
-# For compatibility - allows direct setting of the tint color
-func set_tint_progress(color):
-	tint_progress = color
+func set_fill_color(color):
+	fill_color = color
 	queue_redraw()

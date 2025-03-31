@@ -7,6 +7,7 @@ extends StaticBody3D
 
 # Collection progress (persistent between collection attempts)
 var collection_progress: float = 0.0
+var was_targeted: bool = false
 
 # Visual components
 @onready var mesh = $Mesh
@@ -22,36 +23,43 @@ func _ready():
 	set_collision_layer_value(1, false) # Disable layer 1
 	set_collision_layer_value(2, true)  # Enable layer 2 for resources
 	
-	# Verify collision layer is set correctly
-	print("Resource " + name + " collision layer: " + str(collision_layer) + 
-		", in group 'resource': " + str(is_in_group("resource")))
-	
 	# Initialize visual components
 	scan_highlight.visible = false
 	
 	# Set different appearance based on resource type
-	match resource_type:
-		"ScrapMetal":
-			# Light gray/silver color
-			$Mesh.material_override = get_material_for_type("ScrapMetal")
-		"PowerCell":
-			# Glowing blue color
-			$Mesh.material_override = get_material_for_type("PowerCell")
-		"ElectronicParts":
-			# Circuit board green
-			$Mesh.material_override = get_material_for_type("ElectronicParts")
-		"RareMetal":
-			# Shiny gold color
-			$Mesh.material_override = get_material_for_type("RareMetal")
+	set_material_by_type()
+	
+	print("Resource initialized: " + resource_type + " x" + str(resource_amount))
 
 # When detected by aerial drone scanner
 func highlight_as_scanned():
 	scan_highlight.visible = true
 	print(resource_type + " detected")
 
-# When collected by ground drone
+# Note: we're not using these functions anymore since they affect scan_highlight
+# which should only be modified by the aerial drone
+func highlight_as_targeted():
+	was_targeted = true
+	# Don't change scan_highlight visibility
+
+func unhighlight():
+	was_targeted = false
+	# Don't change scan_highlight visibility
+
+# Remove one unit of resource
+func deplete_one_unit():
+	resource_amount -= 1
+	print("Resource depleted by one unit, " + str(resource_amount) + " remaining")
+	
+	# If no resources left, prepare for removal
+	if resource_amount <= 0:
+		collect()
+		return true
+	return false
+
+# When completely depleted
 func collect():
-	print("Resource collection finalized for: " + resource_type)
+	print("Resource completely depleted: " + resource_type)
 	
 	# Play collection effect
 	collection_particles.emitting = true
@@ -61,8 +69,6 @@ func collect():
 	collision_shape.disabled = true
 	scan_highlight.visible = false
 	
-	print("Resource visuals hidden, waiting for particles...")
-	
 	# Wait for particles to finish
 	await get_tree().create_timer(1.5).timeout
 	
@@ -71,11 +77,11 @@ func collect():
 	# Remove from game
 	queue_free()
 
-# Helper function to get material based on type
-func get_material_for_type(type):
+# Set appearance based on resource type
+func set_material_by_type():
 	var material = StandardMaterial3D.new()
 	
-	match type:
+	match resource_type:
 		"ScrapMetal":
 			material.albedo_color = Color(0.7, 0.7, 0.7)
 			material.metallic = 0.7
@@ -94,4 +100,4 @@ func get_material_for_type(type):
 			material.metallic = 0.9
 			material.roughness = 0.1
 	
-	return material
+	$Mesh.material_override = material
