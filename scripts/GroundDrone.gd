@@ -64,7 +64,7 @@ func _input(event):
 		# Limit vertical camera rotation without rotating the whole drone
 		var current_tilt = camera.rotation.x
 		current_tilt -= event.relative.y * mouse_sensitivity
-		current_tilt = clamp(current_tilt, -PI/4, PI/4) # Limit to 45 degrees up/down
+		current_tilt = clamp(current_tilt, -PI/3, PI/3) # Limit to 45 degrees up/down
 		camera.rotation.x = current_tilt
 
 func process_idle(_delta):
