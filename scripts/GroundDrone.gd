@@ -72,20 +72,30 @@ func _physics_process(delta):
 		DroneState.DOCKING:
 			process_docking(delta)
 	
-	# Apply movement except when collecting
-	if current_state != DroneState.COLLECTING_ACTIVE:
-		# Apply gravity
-		if not is_on_floor():
-			velocity.y -= gravity * delta
-		move_and_slide()
+	# Apply movement for all states
+	# Apply gravity
+	if not is_on_floor():
+		velocity.y -= gravity * delta
+	
+	# Apply movement with reduced speed during collection
+	if current_state == DroneState.COLLECTING_ACTIVE:
+		# Apply a movement speed penalty while collecting
+		velocity.x *= 0.7
+		velocity.z *= 0.7
+	
+	move_and_slide()
+	
+	# Check if left mouse button is still held during collection
+	if current_state == DroneState.COLLECTING_ACTIVE and !Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+		cancel_collection()
 	
 	# Check for resources in view and update crosshair
 	check_resource_in_sight()
 	update_crosshair()
 
 func _input(event):
-	# Mouse look when driving
-	if current_state == DroneState.DRIVING and event is InputEventMouseMotion:
+	# Mouse look when in any state except COLLECTING_ACTIVE
+	if event is InputEventMouseMotion and current_state != DroneState.COLLECTING_ACTIVE:
 		# Rotate the drone horizontally based on mouse movement
 		rotate_y(-event.relative.x * mouse_sensitivity)
 		
@@ -95,15 +105,25 @@ func _input(event):
 		current_tilt = clamp(current_tilt, -PI/3, PI/3) # Limit to 45 degrees up/down
 		camera.rotation.x = current_tilt
 	
+	# Mouse look during COLLECTING_ACTIVE - slower but still allowed
+	elif event is InputEventMouseMotion and current_state == DroneState.COLLECTING_ACTIVE:
+		# Slower rotation during collection
+		rotate_y(-event.relative.x * mouse_sensitivity * 0.5)
+		
+		var current_tilt = camera.rotation.x
+		current_tilt -= event.relative.y * mouse_sensitivity * 0.5
+		current_tilt = clamp(current_tilt, -PI/3, PI/3)
+		camera.rotation.x = current_tilt
+	
 	# Resource collection input (left mouse button)
-	if current_state == DroneState.DRIVING and event is InputEventMouseButton:
-		if event.button_index == MOUSE_BUTTON_LEFT:
-			if event.pressed and resource_in_sight and current_cargo < max_cargo_capacity:
-				# Start collection when left mouse button is pressed
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		if event.pressed and resource_in_sight and current_cargo < max_cargo_capacity:
+			# Start collection when left mouse button is pressed
+			if current_state != DroneState.COLLECTING_ACTIVE:
 				start_collection()
-			elif !event.pressed and current_state == DroneState.COLLECTING_ACTIVE:
-				# Cancel collection when left mouse button is released
-				cancel_collection()
+		elif !event.pressed and current_state == DroneState.COLLECTING_ACTIVE:
+			# Cancel collection when left mouse button is released
+			cancel_collection()
 
 func update_interaction_ray():
 	# Ray always points forward from camera
@@ -171,12 +191,16 @@ func update_progress_indicator(progress: float, max_segments: int):
 		print("Progress indicator not found!")
 		return
 	
+	# Ensure progress indicator is visible
+	progress_indicator.visible = true
+	
 	# Check if the methods exist before calling them
 	if progress_indicator.has_method("set_progress_value"):
 		progress_indicator.set_progress_value(progress * 100.0)
 	else:
 		# Direct property assignment as fallback
-		progress_indicator.value = progress * 100.0
+		if "value" in progress_indicator:
+			progress_indicator.value = progress * 100.0
 	
 	if progress_indicator.has_method("set_segment_count"):
 		progress_indicator.set_segment_count(max_segments)
@@ -188,7 +212,9 @@ func update_progress_indicator(progress: float, max_segments: int):
 	var red_component = 1.0 - (progress * 0.5)  # Reduces from 1.0 to 0.5
 	
 	# Safe property access
-	if "tint_progress" in progress_indicator:
+	if progress_indicator.has_method("set_tint_progress"):
+		progress_indicator.set_tint_progress(Color(red_component, green_component, 0.0, 1.0))
+	elif "tint_progress" in progress_indicator:
 		progress_indicator.tint_progress = Color(red_component, green_component, 0.0, 1.0)
 
 func process_idle(_delta):
@@ -251,8 +277,8 @@ func start_collection():
 	# Update progress indicator with segments based on resource amount
 	update_progress_indicator(collection_progress, resource.resource_amount)
 	
-	# Stop movement
-	velocity = Vector3.ZERO
+	# We allow movement while collecting
+	# velocity is not set to Vector3.ZERO so player can still move
 
 func process_collecting_active(delta):
 	if !current_collection_target or !collection_started:
@@ -262,6 +288,18 @@ func process_collecting_active(delta):
 	# Ensure resource is still valid and in range
 	if !is_instance_valid(current_collection_target) or current_collection_target.resource_amount <= 0:
 		complete_collection()
+		return
+	
+	# Check if resource is still in sight while collecting
+	var resource_still_in_sight = false
+	var current_resource_in_sight = get_resource_in_sight()
+	
+	if current_resource_in_sight == current_collection_target:
+		resource_still_in_sight = true
+	
+	if !resource_still_in_sight:
+		# If resource is no longer in sight, pause the collection but don't cancel
+		# This gives the player a chance to re-aim at the resource
 		return
 	
 	# Calculate progress increment based on collection speed and time

@@ -17,11 +17,14 @@ func _ready():
 	# Hide initially
 	visible = false
 	
+	# Set default size to ensure visibility
+	custom_minimum_size = Vector2(100, 100)
+	
 	# Set up segments
 	set_segments(1)
 
 func _draw():
-	var center = Vector2(0, 0)
+	var center = Vector2(size.x / 2, size.y / 2)
 	
 	# Draw background circle
 	draw_arc(center, radius, 0, TAU, 32, bg_color, thickness)
@@ -68,13 +71,9 @@ func set_progress_value(val):
 
 # This is what we want to call to set segments
 func set_segment_count(num):
-	num_segments = max(1, num)
-	segment_angles = []
-	
-	# Calculate segment angles
-	for i in range(1, num_segments):
-		var angle = (float(i) / num_segments) * TAU
-		segment_angles.append(angle)
-	
-	# Force redraw
+	set_segments(num)
+
+# For compatibility - allows direct setting of the tint color
+func set_tint_progress(color):
+	tint_progress = color
 	queue_redraw()
