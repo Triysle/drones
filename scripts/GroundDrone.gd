@@ -11,7 +11,8 @@ extends CharacterBody3D
 @export var detection_distance: float = 5.0  # How far to check for resources
 
 # Collection Properties
-@export var collection_speed: float = 1.0  # Base collection speed (can be upgraded)
+@export var seconds_per_segment: float = 2.0  # Time in seconds to collect one resource
+@export var collection_speed: float = 1.0  # Base collection speed multiplier (can be upgraded)
 
 # Resource Collection
 @export var max_cargo_capacity: int = 5
@@ -187,6 +188,7 @@ func update_crosshair_and_targeting(new_resource):
 		crosshair.modulate = Color(1.0, 1.0, 0.0, 1.0)  # Yellow
 		
 		# Show progress indicator when targeting a resource
+		# Always use resource.resource_amount for consistent number of segments
 		update_progress_indicator(
 			new_resource.collection_progress, 
 			new_resource.resource_amount
@@ -211,7 +213,17 @@ func was_targeting_resource(resource):
 
 func update_progress_indicator(progress_value: float, segments: int):
 	if progress_indicator:
-		progress_indicator.set_segment_count(segments)
+		# Store original segment count for the resource when we first encounter it
+		if previously_targeted_resource != null and is_instance_valid(previously_targeted_resource):
+			if not previously_targeted_resource.has_meta("original_segments"):
+				previously_targeted_resource.set_meta("original_segments", segments)
+			
+			# Always use the original segment count
+			var original_segments = previously_targeted_resource.get_meta("original_segments")
+			progress_indicator.set_segment_count(original_segments)
+		else:
+			progress_indicator.set_segment_count(segments)
+			
 		progress_indicator.set_progress_value(progress_value * 100.0)
 		
 		# Set green color
@@ -276,8 +288,13 @@ func start_collection():
 	# Make sure progress indicator is visible
 	progress_indicator.visible = true
 	
-	# Initialize progress indicator with segments based on resource amount
-	update_progress_indicator(collection_progress, resource.resource_amount)
+	# Save original segment count if not already saved
+	if not resource.has_meta("original_segments"):
+		resource.set_meta("original_segments", resource.resource_amount)
+	
+	# Initialize progress indicator with original segment count
+	var original_segments = resource.get_meta("original_segments")
+	update_progress_indicator(collection_progress, original_segments)
 
 func process_collecting_active(delta):
 	if !current_collection_target or !collection_started:
@@ -300,13 +317,20 @@ func process_collecting_active(delta):
 		# If resource is no longer in sight, pause collection but don't cancel
 		return
 	
-	# Calculate progress increment based on collection speed and time
-	var progress_increment = delta * collection_speed
+	# Get original segment count (from first encounter with this resource)
+	var original_segments = current_collection_target.get_meta("original_segments")
+	
+	# Calculate progress increment based on collection speed, time, and segment count
+	# (1.0 / original_segments) is the size of one segment
+	# We divide this by seconds_per_segment to get how much progress to make per second
+	var progress_rate = (1.0 / original_segments) / seconds_per_segment
+	
+	# Apply the collection speed multiplier (for upgrades) and delta time
+	var progress_increment = progress_rate * collection_speed * delta
 	collection_progress += progress_increment
 	
 	# Calculate segment thresholds
-	var segments_total = current_collection_target.resource_amount
-	var segment_size = 1.0 / segments_total
+	var segment_size = 1.0 / original_segments
 	
 	# Check if we've crossed a segment boundary
 	var segment_to_collect = floor(collection_progress / segment_size)
@@ -316,7 +340,7 @@ func process_collecting_active(delta):
 		add_resource_to_cargo(current_collection_target.resource_type, 1)
 		segments_collected += 1
 		
-		print("Collected segment " + str(segments_collected) + "/" + str(segments_total) + 
+		print("Collected segment " + str(segments_collected) + "/" + str(original_segments) + 
 			" of " + current_collection_target.resource_type)
 		
 		# Check if this depletes the resource
@@ -325,8 +349,8 @@ func process_collecting_active(delta):
 			complete_collection()
 			return
 	
-	# Update progress indicator
-	update_progress_indicator(collection_progress, segments_total)
+	# Update progress indicator - use original segment count
+	update_progress_indicator(collection_progress, original_segments)
 	
 	# Save progress to resource
 	current_collection_target.collection_progress = collection_progress

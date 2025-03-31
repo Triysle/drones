@@ -8,6 +8,7 @@ extends StaticBody3D
 # Collection progress (persistent between collection attempts)
 var collection_progress: float = 0.0
 var was_targeted: bool = false
+var initial_amount: int = 0  # Store the initial amount for UI consistency
 
 # Visual components
 @onready var mesh = $Mesh
@@ -28,6 +29,9 @@ func _ready():
 	
 	# Set different appearance based on resource type
 	set_material_by_type()
+	
+	# Store initial amount
+	initial_amount = resource_amount
 	
 	print("Resource initialized: " + resource_type + " x" + str(resource_amount))
 
@@ -101,3 +105,7 @@ func set_material_by_type():
 			material.roughness = 0.1
 	
 	$Mesh.material_override = material
+
+# Get the segment count for UI - always return initial amount
+func get_segment_count():
+	return initial_amount
