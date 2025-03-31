@@ -93,15 +93,11 @@ func _physics_process(delta):
 		cancel_collection()
 
 func _input(event):
-	# Handle pause menu (ESC key)
-	if event.is_action_pressed("pause_game"):
-		# This should be handled by GameManager, but we'll make sure mouse is freed
-		if Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED:
-			Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
-		return
-		
+	# Handle pause menu - NOTE: Main pause logic is now handled by GameManager
+	# We only need to ensure proper mouse capture when control returns to the drone
+	
 	# Mouse look
-	if event is InputEventMouseMotion:
+	if event is InputEventMouseMotion and Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED:
 		# Slower rotation during collection
 		var sensitivity_modifier = 1.0
 		if current_state == DroneState.COLLECTING_ACTIVE:
@@ -125,6 +121,12 @@ func _input(event):
 		elif !event.pressed and current_state == DroneState.COLLECTING_ACTIVE:
 			# Cancel collection when left mouse button is released
 			cancel_collection()
+
+# Called when the drone resumes from pause
+func resume_from_pause():
+	# Make sure mouse is captured when we're in control of this drone
+	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+	print("Ground drone: Recaptured mouse after resuming from pause")
 
 func check_resources_in_sight():
 	var new_resource = get_resource_in_sight()

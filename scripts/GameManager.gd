@@ -6,7 +6,7 @@ extends Node
 @export var test_environment_scene = load("res://scenes/TestEnvironment.tscn")
 @export var base_station_scene = load("res://scenes/BaseStation.tscn") 
 @export var resource_scene = load("res://scenes/Resource.tscn")
-@export var pause_menu_scene = load("res://scenes/PauseMenu.tscn")  # Add this line
+@export var pause_menu_scene = load("res://scenes/PauseMenu.tscn")
 
 # Current environment
 var current_environment = null
@@ -16,6 +16,7 @@ var base_station = null
 var current_mission_number = 1
 var total_resources_collected = 0
 var missions_completed = 0
+var active_drone = null  # Reference to currently active drone (aerial or ground)
 
 # UI References
 @onready var mission_display = $CanvasLayer/MissionDisplay
@@ -94,9 +95,14 @@ func toggle_pause():
 		
 		# Restore mouse capture if it was captured before
 		if mouse_was_captured:
-			Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+			# Use a tween to delay recapturing the mouse slightly
+			# This ensures proper operation after unpausing
+			create_tween().tween_callback(func(): 
+				Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+				print("Mouse recaptured after unpausing")
+			).set_delay(0.05)
 		
-		print("Game unpaused. Restored mouse capture: " + str(mouse_was_captured))
+		print("Game unpaused. Restoring mouse capture: " + str(mouse_was_captured))
 
 # Signal handlers for pause menu
 func _on_resume_game():

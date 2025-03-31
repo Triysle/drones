@@ -248,6 +248,11 @@ func deduct_resources(cost):
 	for resource_type in cost:
 		stored_resources[resource_type] -= cost[resource_type]
 
+# Helper functions
+func get_active_drone():
+	# Return the currently active drone
+	return active_drone
+
 # Signal handlers
 func _on_deploy_aerial():
 	deploy_aerial_drone()

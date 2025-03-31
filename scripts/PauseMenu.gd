@@ -16,15 +16,15 @@ func _ready():
 	resume_button.pressed.connect(_on_resume_pressed)
 	quit_button.pressed.connect(_on_quit_pressed)
 	
-	print("New pause menu initialized")
+	print("Pause menu initialized")
 
 # Signal handlers
 func _on_resume_pressed():
-	print("Resume pressed!")
+	print("Resume button pressed")
 	emit_signal("resume_game")
 
 func _on_quit_pressed():
-	print("Quit pressed!")
+	print("Quit button pressed")
 	emit_signal("quit_game")
 
 # Show/hide methods for cleaner code
