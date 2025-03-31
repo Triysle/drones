@@ -2,8 +2,8 @@
 
 [ext_resource type="Script" uid="uid://bni2ha4odumw1" path="res://scripts/GameManager.gd" id="1_elqb8"]
 [ext_resource type="Script" uid="uid://b1rfndp28srso" path="res://scripts/MissionDisplay.gd" id="2_rvslj"]
-[ext_resource type="Script" uid="uid://c1618xp4ub86w" path="res://scripts/PauseMenu.gd" id="3_0bbpv"]
 [ext_resource type="Script" uid="uid://dfr8exlb2wnab" path="res://scripts/HelpPanel.gd" id="3_rarhs"]
+[ext_resource type="PackedScene" uid="uid://btwyhctpeapm1" path="res://scenes/PauseMenu.tscn" id="4_rarhs"]
 
 [node name="GameManager" type="Node"]
 script = ExtResource("1_elqb8")
@@ -54,41 +54,4 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("3_rarhs")
 
-[node name="PauseMenu" type="Control" parent="CanvasLayer"]
-layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-script = ExtResource("3_0bbpv")
-
-[node name="ResumeButton" type="Button" parent="CanvasLayer/PauseMenu"]
-layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -4.0
-offset_top = -4.0
-offset_right = 4.0
-offset_bottom = 4.0
-grow_horizontal = 2
-grow_vertical = 2
-text = "Resume"
-
-[node name="QuitButton" type="Button" parent="CanvasLayer/PauseMenu"]
-layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -21.0
-offset_top = 18.0
-offset_right = 21.0
-offset_bottom = 49.0
-grow_horizontal = 2
-grow_vertical = 2
-text = "Quit"
+[node name="PauseMenu" parent="CanvasLayer" instance=ExtResource("4_rarhs")]

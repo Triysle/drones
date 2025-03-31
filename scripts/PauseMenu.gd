@@ -3,23 +3,35 @@ extends Control
 signal resume_game
 signal quit_game
 
-@onready var resume_button = $ResumeButton
-@onready var quit_button = $QuitButton
+# UI elements
+@onready var resume_button = $Panel/VBoxContainer/ResumeButton
+@onready var quit_button = $Panel/VBoxContainer/QuitButton
 
 func _ready():
-	# Connect button signals directly using connect() method
-	resume_button.pressed.connect(_on_resume_button_pressed)
-	quit_button.pressed.connect(_on_quit_button_pressed)
-	
-	# Hide menu initially
+	# Ensure we're set up correctly
+	process_mode = Node.PROCESS_MODE_WHEN_PAUSED
 	visible = false
 	
-	print("Pause menu initialized - buttons connected")
+	# Connect the button signals
+	resume_button.pressed.connect(_on_resume_pressed)
+	quit_button.pressed.connect(_on_quit_pressed)
+	
+	print("New pause menu initialized")
 
-func _on_resume_button_pressed():
-	print("Resume button pressed")
+# Signal handlers
+func _on_resume_pressed():
+	print("Resume pressed!")
 	emit_signal("resume_game")
 
-func _on_quit_button_pressed():
-	print("Quit button pressed")
+func _on_quit_pressed():
+	print("Quit pressed!")
 	emit_signal("quit_game")
+
+# Show/hide methods for cleaner code
+func show_menu():
+	visible = true
+	print("Pause menu shown")
+
+func hide_menu():
+	visible = false
+	print("Pause menu hidden")

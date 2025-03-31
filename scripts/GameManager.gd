@@ -6,6 +6,7 @@ extends Node
 @export var test_environment_scene = load("res://scenes/TestEnvironment.tscn")
 @export var base_station_scene = load("res://scenes/BaseStation.tscn") 
 @export var resource_scene = load("res://scenes/Resource.tscn")
+@export var pause_menu_scene = load("res://scenes/PauseMenu.tscn")  # Add this line
 
 # Current environment
 var current_environment = null
@@ -19,26 +20,23 @@ var missions_completed = 0
 # UI References
 @onready var mission_display = $CanvasLayer/MissionDisplay
 @onready var help_panel = $CanvasLayer/HelpPanel
-@onready var pause_menu = $CanvasLayer/PauseMenu
+var pause_menu = null  # Will instantiate dynamically
 
-# Mouse capture state
+# Game state
+var is_game_paused = false
 var mouse_was_captured = false
 
 func _ready():
 	# Setup initial game state
 	initialize_game()
 	
-	# Connect UI signals
-	pause_menu.connect("resume_game", Callable(self, "_on_resume_game"))
-	pause_menu.connect("quit_game", Callable(self, "_on_quit_game"))
-	
-	# Hide pause menu initially
-	pause_menu.visible = false
+	# Create pause menu
+	create_pause_menu()
 
 func _input(event):
 	# Toggle pause menu
 	if event.is_action_pressed("pause_game"):
-		toggle_pause_menu()
+		toggle_pause()
 	
 	# Toggle help panel
 	if event.is_action_pressed("show_help"):
@@ -58,6 +56,56 @@ func initialize_game():
 	update_mission_display()
 	
 	print("Game initialized")
+
+# Create and setup the pause menu
+func create_pause_menu():
+	# Instance the pause menu scene
+	pause_menu = pause_menu_scene.instantiate()
+	$CanvasLayer.add_child(pause_menu)
+	
+	# Connect signals
+	pause_menu.connect("resume_game", Callable(self, "_on_resume_game"))
+	pause_menu.connect("quit_game", Callable(self, "_on_quit_game"))
+	
+	print("Pause menu created and connected")
+
+# Pause/unpause the game
+func toggle_pause():
+	is_game_paused = !is_game_paused
+	
+	if is_game_paused:
+		# Pause the game
+		get_tree().paused = true
+		
+		# Store mouse capture state and free the mouse
+		mouse_was_captured = Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED
+		Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+		
+		# Show the pause menu
+		pause_menu.show_menu()
+		
+		print("Game paused. Mouse was captured: " + str(mouse_was_captured))
+	else:
+		# Hide the pause menu
+		pause_menu.hide_menu()
+		
+		# Unpause the game
+		get_tree().paused = false
+		
+		# Restore mouse capture if it was captured before
+		if mouse_was_captured:
+			Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+		
+		print("Game unpaused. Restored mouse capture: " + str(mouse_was_captured))
+
+# Signal handlers for pause menu
+func _on_resume_game():
+	print("Resume game signal received")
+	toggle_pause() # This will handle unpausing
+
+func _on_quit_game():
+	print("Quit game signal received, exiting...")
+	get_tree().quit()
 
 func load_environment():
 	# Instantiate environment scene
@@ -177,24 +225,6 @@ func update_mission_display():
 	mission_display.set_resources_collected(total_resources_collected)
 	mission_display.set_missions_completed(missions_completed)
 
-func toggle_pause_menu():
-	# Show/hide pause menu
-	pause_menu.visible = !pause_menu.visible
-	
-	# Pause game when menu is visible
-	get_tree().paused = pause_menu.visible
-	
-	# Handle mouse capture
-	if pause_menu.visible:
-		# Store current mouse mode before freeing it
-		mouse_was_captured = Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED
-		# Free the mouse when paused
-		Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
-	else:
-		# Restore mouse capture state when unpausing
-		if mouse_was_captured:
-			Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
-
 func toggle_help_panel():
 	# Show/hide help panel
 	help_panel.visible = !help_panel.visible
@@ -204,18 +234,5 @@ func toggle_help_panel():
 		mouse_was_captured = Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED
 		Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 	else:
-		if mouse_was_captured and !pause_menu.visible:
+		if mouse_was_captured and !is_game_paused:
 			Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
-
-# Signal handlers
-func _on_resume_game():
-	pause_menu.visible = false
-	get_tree().paused = false
-	
-	# Restore mouse capture state
-	if mouse_was_captured:
-		Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
-
-func _on_quit_game():
-	# Return to title screen or quit game
-	get_tree().quit()
