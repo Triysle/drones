@@ -14,10 +14,10 @@ extends CharacterBody3D
 @export var seconds_per_segment: float = 2.0  # Time in seconds to collect one resource
 @export var collection_speed: float = 1.0  # Base collection speed multiplier (can be upgraded)
 
-# Resource Collection
-@export var max_cargo_capacity: int = 5
-var current_cargo: int = 0
-var collected_resources = {}  # Dictionary to track resource types and quantities
+# Resource Collection - Slot-based inventory
+@export var max_cargo_slots: int = 5  # Initial capacity (5 slots)
+var cargo_slots = []  # Array of resource types, empty string "" means empty slot
+var current_cargo_count: int = 0  # How many slots are filled
 
 # State Management
 enum DroneState {IDLE, DRIVING, COLLECTING_ACTIVE, DOCKING}
@@ -29,14 +29,14 @@ var previously_targeted_resource = null  # To track when targeting changes
 var collection_progress: float = 0.0  # Progress from 0.0 to 1.0 (0 = not started, 1 = complete)
 var collection_started: bool = false
 var segments_collected: int = 0  # Track how many segments we've collected
-var targeting_resources = {}  # Dictionary to track which resources we're targeting
 
 # References
 @onready var camera = $Camera3D
-@onready var cargo_indicator = $CanvasLayer/CargoIndicator
 @onready var interaction_ray = $Camera3D/InteractionRay
 @onready var crosshair = $CanvasLayer/Crosshair
 @onready var progress_indicator = $CanvasLayer/ProgressIndicator
+@onready var cargo_slots_ui = $CanvasLayer/CargoSlotsUI
+@onready var resource_info_label = $CanvasLayer/ResourceInfoLabel
 
 # Navigation
 var target_waypoint = null
@@ -44,11 +44,14 @@ var waypoints = []  # Will be populated from aerial drone's marked locations
 var resource_in_sight: bool = false  # Track if we're looking at a resource
 
 func _ready():
-	# Initialize UI
-	update_cargo_display()
+	# Initialize slot-based inventory
+	initialize_cargo_slots(max_cargo_slots)
 	
 	# Hide progress indicator initially
 	progress_indicator.visible = false
+	
+	# Initialize resource info label
+	resource_info_label.visible = false
 	
 	# Start directly in driving mode
 	current_state = DroneState.DRIVING
@@ -61,6 +64,15 @@ func _ready():
 	# Capture mouse
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 	print("Ground drone deployed - mouse captured for camera control")
+
+# Initialize the cargo slots array
+func initialize_cargo_slots(num_slots: int):
+	cargo_slots.clear()
+	for i in range(num_slots):
+		cargo_slots.append("")  # Empty slots
+	
+	# Update UI
+	update_cargo_ui()
 
 func _physics_process(delta):
 	# Apply gravity
@@ -93,9 +105,6 @@ func _physics_process(delta):
 		cancel_collection()
 
 func _input(event):
-	# Handle pause menu - NOTE: Main pause logic is now handled by GameManager
-	# We only need to ensure proper mouse capture when control returns to the drone
-	
 	# Mouse look
 	if event is InputEventMouseMotion and Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED:
 		# Slower rotation during collection
@@ -114,7 +123,7 @@ func _input(event):
 	
 	# Resource collection input (left mouse button)
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
-		if event.pressed and resource_in_sight and current_cargo < max_cargo_capacity:
+		if event.pressed and resource_in_sight and current_cargo_count < max_cargo_slots:
 			# Start collection when left mouse button is pressed
 			if current_state != DroneState.COLLECTING_ACTIVE:
 				start_collection()
@@ -132,16 +141,23 @@ func check_resources_in_sight():
 	var new_resource = get_resource_in_sight()
 	
 	# Update resource_in_sight flag
-	resource_in_sight = (new_resource != null && current_cargo < max_cargo_capacity)
+	resource_in_sight = (new_resource != null && current_cargo_count < max_cargo_slots)
 	
 	# Update crosshair
 	update_crosshair_and_targeting(new_resource)
+	
+	# Update resource info label
+	if new_resource != null && current_cargo_count < max_cargo_slots:
+		resource_info_label.text = new_resource.resource_type
+		resource_info_label.visible = true
+	else:
+		resource_info_label.visible = false
 
 func get_resource_in_sight():
 	# First check with raycast
 	if interaction_ray.is_colliding():
 		var collider = interaction_ray.get_collider()
-		if collider.is_in_group("resource") and current_cargo < max_cargo_capacity:
+		if collider.is_in_group("resource") and current_cargo_count < max_cargo_slots:
 			return collider
 	
 	# If raycast didn't find a resource, try the direct method
@@ -180,17 +196,14 @@ func update_crosshair_and_targeting(new_resource):
 		
 	# Clear previous targeting
 	if previously_targeted_resource != null and is_instance_valid(previously_targeted_resource):
-		# Don't use highlight_as_targeted/unhighlight methods to avoid scan_highlight changes
-		if was_targeting_resource(previously_targeted_resource):
-			previously_targeted_resource = null
+		previously_targeted_resource = null
 	
 	# Update targeting
-	if new_resource != null and current_cargo < max_cargo_capacity:
+	if new_resource != null and current_cargo_count < max_cargo_slots:
 		# Change crosshair to yellow when pointing at a collectable resource
 		crosshair.modulate = Color(1.0, 1.0, 0.0, 1.0)  # Yellow
 		
 		# Show progress indicator when targeting a resource
-		# Always use resource.resource_amount for consistent number of segments
 		update_progress_indicator(
 			new_resource.collection_progress, 
 			new_resource.resource_amount
@@ -208,10 +221,6 @@ func update_crosshair_and_targeting(new_resource):
 		
 		# Clear targeted resource
 		previously_targeted_resource = null
-
-# Helper function to track which resources we're targeting
-func was_targeting_resource(resource):
-	return previously_targeted_resource == resource
 
 func update_progress_indicator(progress_value: float, segments: int):
 	if progress_indicator:
@@ -339,16 +348,21 @@ func process_collecting_active(delta):
 	
 	if segment_to_collect > segments_collected:
 		# We've crossed a segment boundary - collect one unit
-		add_resource_to_cargo(current_collection_target.resource_type, 1)
-		segments_collected += 1
-		
-		print("Collected segment " + str(segments_collected) + "/" + str(original_segments) + 
-			" of " + current_collection_target.resource_type)
-		
-		# Check if this depletes the resource
-		if current_collection_target.deplete_one_unit():
-			# Resource fully depleted
-			complete_collection()
+		if has_empty_cargo_slot():
+			add_resource_to_cargo(current_collection_target.resource_type)
+			segments_collected += 1
+			
+			print("Collected segment " + str(segments_collected) + "/" + str(original_segments) + 
+				" of " + current_collection_target.resource_type)
+			
+			# Check if this depletes the resource
+			if current_collection_target.deplete_one_unit():
+				# Resource fully depleted
+				complete_collection()
+				return
+		else:
+			# No empty slots - cancel collection
+			cancel_collection()
 			return
 	
 	# Update progress indicator - use original segment count
@@ -387,20 +401,34 @@ func complete_collection():
 	# Return to driving state
 	current_state = DroneState.DRIVING
 
-func add_resource_to_cargo(resource_type, amount):
-	# Add resource to inventory
-	if resource_type in collected_resources:
-		collected_resources[resource_type] += amount
+# Check if we have an empty cargo slot
+func has_empty_cargo_slot() -> bool:
+	return current_cargo_count < max_cargo_slots
+
+# Find the first empty cargo slot
+func find_empty_cargo_slot() -> int:
+	for i in range(cargo_slots.size()):
+		if cargo_slots[i] == "":
+			return i
+	return -1  # No empty slots
+
+# Add resource to first available cargo slot
+func add_resource_to_cargo(resource_type: String):
+	var slot_index = find_empty_cargo_slot()
+	if slot_index >= 0:
+		cargo_slots[slot_index] = resource_type
+		current_cargo_count += 1
+		update_cargo_ui()
+		print("Added " + resource_type + " to cargo slot " + str(slot_index) + 
+			" (Total: " + str(current_cargo_count) + "/" + str(max_cargo_slots) + ")")
+		return true
 	else:
-		collected_resources[resource_type] = amount
-	
-	# Update cargo count
-	current_cargo += amount
-	
-	# Update UI
-	update_cargo_display()
-	
-	print("Added " + str(amount) + " " + resource_type + " to cargo (Total: " + str(current_cargo) + "/" + str(max_cargo_capacity) + ")")
+		print("Cannot add to cargo - all slots full")
+		return false
+
+# Update the cargo UI display
+func update_cargo_ui():
+	cargo_slots_ui.update_slots(cargo_slots)
 
 func process_docking(_delta):
 	# Docking logic
@@ -413,10 +441,6 @@ func process_docking(_delta):
 	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 	complete_docking()
 
-func update_cargo_display():
-	# Update UI cargo indicator
-	cargo_indicator.value = (float(current_cargo) / max_cargo_capacity) * 100.0
-
 func is_near_base():
 	# This would check distance to base in practice
 	# For now, return true when the dock key is pressed
@@ -424,28 +448,64 @@ func is_near_base():
 
 func complete_docking():
 	# Process resources at base
-	if current_cargo > 0:
+	if current_cargo_count > 0:
 		print("Unloading cargo:")
-		for resource_type in collected_resources:
-			print("- " + resource_type + ": " + str(collected_resources[resource_type]))
+		
+		# Convert cargo slots to resource counts
+		var delivered_resources = {}
+		for resource_type in cargo_slots:
+			if resource_type != "":
+				if resource_type in delivered_resources:
+					delivered_resources[resource_type] += 1
+				else:
+					delivered_resources[resource_type] = 1
+		
+		# Display what we're delivering
+		for resource_type in delivered_resources:
+			print("- " + resource_type + ": " + str(delivered_resources[resource_type]))
 		
 		# Signal resources have been delivered
-		emit_signal("resources_delivered", collected_resources)
+		emit_signal("resources_delivered", delivered_resources)
 		
 		# Reset cargo
-		current_cargo = 0
-		collected_resources.clear()
-		update_cargo_display()
+		initialize_cargo_slots(max_cargo_slots)
+		current_cargo_count = 0
 	
 	# Reset state
 	current_state = DroneState.IDLE
 	
 	print("Docking complete, cargo unloaded")
 
+# Expand cargo capacity (called when upgrading)
+func expand_cargo_capacity(new_capacity: int):
+	if new_capacity > max_cargo_slots:
+		max_cargo_slots = new_capacity
+		
+		# Add new empty slots
+		while cargo_slots.size() < max_cargo_slots:
+			cargo_slots.append("")
+			
+		# Update UI
+		cargo_slots_ui.expand_capacity(max_cargo_slots)
+		print("Cargo capacity expanded to " + str(max_cargo_slots) + " slots")
+
 # Set waypoints from aerial drone's marked locations
 func set_waypoints(points):
 	waypoints = points
 	print("Received " + str(waypoints.size()) + " waypoints from aerial drone")
+
+# Calculate total resources by type
+func get_resources_by_type():
+	var resources = {}
+	
+	for resource_type in cargo_slots:
+		if resource_type != "":
+			if resource_type in resources:
+				resources[resource_type] += 1
+			else:
+				resources[resource_type] = 1
+	
+	return resources
 
 # Signals
 signal resources_delivered(resources)

@@ -1,8 +1,10 @@
-[gd_scene load_steps=6 format=3 uid="uid://hm58txnl0i6t"]
+[gd_scene load_steps=8 format=3 uid="uid://hm58txnl0i6t"]
 
 [ext_resource type="Script" uid="uid://dwa8xcq5kittb" path="res://scripts/GroundDrone.gd" id="1_86fod"]
 [ext_resource type="Texture2D" uid="uid://cxa75dbsddirm" path="res://assets/crosshair-texture.svg" id="2_blo87"]
 [ext_resource type="PackedScene" uid="uid://cp6dl07odw4ic" path="res://scenes/ProgressIndicator.tscn" id="3_usdcu"]
+[ext_resource type="PackedScene" uid="uid://carl73s3sjt07" path="res://scenes/CargoSlotsUI.tscn" id="4_otmn8"]
+[ext_resource type="PackedScene" uid="uid://c2urj6jd271dt" path="res://scenes/ResourceInfoLabel.tscn" id="5_oweyx"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_vw06u"]
 size = Vector3(2, 0.5, 3)
@@ -53,3 +55,9 @@ texture = ExtResource("2_blo87")
 
 [node name="ProgressIndicator" parent="CanvasLayer" instance=ExtResource("3_usdcu")]
 visible = false
+
+[node name="CargoSlotsUI" parent="CanvasLayer" instance=ExtResource("4_otmn8")]
+anchors_preset = 1
+
+[node name="ResourceInfoLabel" parent="CanvasLayer" instance=ExtResource("5_oweyx")]
+anchors_preset = 8

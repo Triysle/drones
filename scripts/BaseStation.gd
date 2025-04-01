@@ -171,7 +171,9 @@ func apply_aerial_upgrades(drone):
 
 func apply_ground_upgrades(drone):
 	# Apply upgrade levels to drone properties
-	drone.max_cargo_capacity = 5 * ground_drone_upgrades["cargo_capacity"]
+	# Update the cargo capacity - now using slots
+	drone.expand_cargo_capacity(5 * ground_drone_upgrades["cargo_capacity"])
+	
 	drone.max_speed = 7.0 * ground_drone_upgrades["speed"]
 	
 	# Terrain handling would affect physics properties

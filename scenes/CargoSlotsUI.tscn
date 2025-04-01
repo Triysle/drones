@@ -1,0 +1,15 @@
+[gd_scene load_steps=2 format=3 uid="uid://carl73s3sjt07"]
+
+[ext_resource type="Script" uid="uid://xtwshxmxceg8" path="res://scripts/CargoSlotsUI.gd" id="1_g4kte"]
+
+[node name="CargoSlotsUi" type="Control"]
+layout_mode = 3
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -300.0
+offset_top = 20.0
+offset_right = -20.0
+offset_bottom = 80.0
+grow_horizontal = 0
+grow_vertical = 2
+script = ExtResource("1_g4kte")
