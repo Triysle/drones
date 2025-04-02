@@ -58,6 +58,11 @@ visible = false
 
 [node name="CargoSlotsUI" parent="CanvasLayer" instance=ExtResource("4_otmn8")]
 anchors_preset = 1
+offset_left = -280.0
+offset_top = 0.0
+offset_right = 0.0
+offset_bottom = 60.0
+grow_vertical = 1
 
 [node name="ResourceInfoLabel" parent="CanvasLayer" instance=ExtResource("5_oweyx")]
 anchors_preset = 8
