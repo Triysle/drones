@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="DRONES"
-run/main_scene="uid://cc1xo1ohutfl"
+run/main_scene="uid://dddu2enxrq217"
 config/features=PackedStringArray("4.4", "Forward Plus")
 config/icon="res://icon.svg"
 

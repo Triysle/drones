@@ -33,7 +33,7 @@ var segments_collected: int = 0  # Track how many segments we've collected
 # References
 @onready var camera = $Camera3D
 @onready var interaction_ray = $Camera3D/InteractionRay
-@onready var crosshair = $CanvasLayer/Crosshair
+@onready var crosshair = $"../GameUI/Crosshair"
 
 # UI references - these will be updated to point to nodes in the main scene
 var progress_indicator
@@ -437,11 +437,22 @@ func add_resource_to_cargo(resource_type: String):
 		print("Cannot add to cargo - all slots full")
 		return false
 
-# Update the cargo UI display
 func update_cargo_ui():
-	cargo_slots_ui.update_slots(cargo_slots)
+	# Try to update through the GameUI first
+	var game_ui = get_node_or_null("/root/Main/GameUI")
+	if game_ui and game_ui.has_method("update_cargo_slots"):
+		game_ui.update_cargo_slots(cargo_slots)
+		return
+		
+	# Fall back to direct update if available
+	if cargo_slots_ui and cargo_slots_ui.has_method("update_slots"):
+		cargo_slots_ui.update_slots(cargo_slots)
+		return
+		
+	# Debug info if neither method works
+	print("Warning: Cannot update cargo UI - interface not found")
 
-func process_docking(delta):
+func process_docking(_delta):
 	# Docking logic
 	velocity = Vector3.ZERO
 	

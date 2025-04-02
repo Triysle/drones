@@ -9,35 +9,84 @@ extends Control
 @onready var ground_speed_button = $GroundUpgrades/SpeedButton
 @onready var ground_terrain_button = $GroundUpgrades/TerrainButton
 
-# Label references
-@onready var resource_labels = $"../ResourceDisplay/ResourceCounts"
+# Label references - we'll try different paths to find this
+var resource_labels
 
 # Signals
 signal upgrade_selected(drone_type, upgrade_type)
 
 func _ready():
-	# Connect button signals
-	aerial_battery_button.connect("pressed", Callable(self, "_on_aerial_battery_pressed"))
-	aerial_scan_button.connect("pressed", Callable(self, "_on_aerial_scan_pressed"))
-	aerial_speed_button.connect("pressed", Callable(self, "_on_aerial_speed_pressed"))
+	# Find resource labels - try different paths
+	resource_labels = find_resource_labels()
 	
-	ground_cargo_button.connect("pressed", Callable(self, "_on_ground_cargo_pressed"))
-	ground_speed_button.connect("pressed", Callable(self, "_on_ground_speed_pressed"))
-	ground_terrain_button.connect("pressed", Callable(self, "_on_ground_terrain_pressed"))
+	# Connect button signals - check for null first
+	if aerial_battery_button:
+		aerial_battery_button.connect("pressed", Callable(self, "_on_aerial_battery_pressed"))
+	
+	if aerial_scan_button:
+		aerial_scan_button.connect("pressed", Callable(self, "_on_aerial_scan_pressed"))
+		
+	if aerial_speed_button:
+		aerial_speed_button.connect("pressed", Callable(self, "_on_aerial_speed_pressed"))
+	
+	if ground_cargo_button:
+		ground_cargo_button.connect("pressed", Callable(self, "_on_ground_cargo_pressed"))
+		
+	if ground_speed_button:
+		ground_speed_button.connect("pressed", Callable(self, "_on_ground_speed_pressed"))
+		
+	if ground_terrain_button:
+		ground_terrain_button.connect("pressed", Callable(self, "_on_ground_terrain_pressed"))
+
+# Helper to find resource labels using different possible paths
+func find_resource_labels():
+	var labels
+	
+	# Try different paths
+	labels = get_node_or_null("../ResourceDisplay/ResourceCounts")
+	if labels:
+		return labels
+		
+	labels = get_node_or_null("/root/Main/GameUI/ResourceDisplay/ResourceCounts")
+	if labels:
+		return labels
+	
+	# If we still can't find it, create a fallback
+	print("Warning: Resource labels not found, creating a fallback")
+	labels = Label.new()
+	labels.text = "Resources:"
+	add_child(labels)
+	return labels
 
 # Update upgrade button states based on available resources
 func update_button_states(resources, aerial_levels, ground_levels):
 	# For each upgrade button, check if player can afford it
-	update_button(aerial_battery_button, "aerial", "battery_capacity", aerial_levels["battery_capacity"], resources)
-	update_button(aerial_scan_button, "aerial", "scan_range", aerial_levels["scan_range"], resources)
-	update_button(aerial_speed_button, "aerial", "speed", aerial_levels["speed"], resources)
+	# Use null checks before accessing each button
+	if aerial_battery_button:
+		update_button(aerial_battery_button, "aerial", "battery_capacity", aerial_levels["battery_capacity"], resources)
 	
-	update_button(ground_cargo_button, "ground", "cargo_capacity", ground_levels["cargo_capacity"], resources)
-	update_button(ground_speed_button, "ground", "speed", ground_levels["speed"], resources)
-	update_button(ground_terrain_button, "ground", "terrain_handling", ground_levels["terrain_handling"], resources)
+	if aerial_scan_button:
+		update_button(aerial_scan_button, "aerial", "scan_range", aerial_levels["scan_range"], resources)
+	
+	if aerial_speed_button:
+		update_button(aerial_speed_button, "aerial", "speed", aerial_levels["speed"], resources)
+	
+	if ground_cargo_button:
+		update_button(ground_cargo_button, "ground", "cargo_capacity", ground_levels["cargo_capacity"], resources)
+	
+	if ground_speed_button:
+		update_button(ground_speed_button, "ground", "speed", ground_levels["speed"], resources)
+	
+	if ground_terrain_button:
+		update_button(ground_terrain_button, "ground", "terrain_handling", ground_levels["terrain_handling"], resources)
 
 # Update a single button's state and tooltip
 func update_button(button, _drone_type, upgrade_type, current_level, resources):
+	# Safety check
+	if button == null:
+		print("Warning: Button for upgrade " + upgrade_type + " is null")
+		return
+		
 	# Calculate cost for next level
 	var cost = calculate_upgrade_cost(_drone_type, upgrade_type, current_level)
 	
@@ -128,7 +177,8 @@ func update_resources(resources):
 	for resource_type in resources:
 		text += "\n" + resource_type + ": " + str(resources[resource_type])
 	
-	resource_labels.text = text
+	if resource_labels:
+		resource_labels.text = text
 
 # Signal handlers for buttons
 func _on_aerial_battery_pressed():

@@ -5,6 +5,9 @@ extends Control
 @onready var resources_label = $ResourcesCollectedLabel
 @onready var missions_completed_label = $MissionsCompletedLabel
 
+# Status message label
+@onready var status_label = $StatusLabel  # Make sure to add this node to your scene
+
 func _ready():
 	# Initialize display
 	set_mission_number(1)
@@ -22,3 +25,10 @@ func set_resources_collected(count):
 # Update missions completed display
 func set_missions_completed(count):
 	missions_completed_label.text = "Missions Completed: " + str(count)
+
+# Update status message display
+func set_status_message(message):
+	if status_label:
+		status_label.text = message
+	else:
+		print("Status label not found in MissionDisplay")

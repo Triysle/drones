@@ -2,25 +2,20 @@ extends Node
 
 # Game Manager - Coordinates overall gameplay systems
 
-# Scene references - now using preload for resource scene only
+# Scene references
 @export var resource_scene = preload("res://scenes/Resource.tscn") 
 
-# Node path references (new)
-@onready var environment = $Environment
-@onready var base_station = $BaseStation
-@onready var resources_container = $Resources
-@onready var resource_spawn_points = $Environment/ResourceSpawnPoints
+# Node path references
+@onready var environment = $"../Environment"
+@onready var base_station = $"../BaseStation"
+@onready var resources_container = $"../Resources"
+@onready var resource_spawn_points = $"../Environment/ResourceSpawnPoints"
+@onready var game_ui = $"../GameUI"
 
 # Game state tracking
 var current_mission_number = 1
 var total_resources_collected = 0
 var missions_completed = 0
-var active_drone = null  # Reference to currently active drone (aerial or ground)
-
-# UI References (updated paths)
-@onready var mission_display = $GameUI/MissionDisplay
-@onready var help_panel = $GameUI/HelpPanel
-@onready var pause_menu = $GameUI/PauseMenu
 
 # Game state
 var is_game_paused = false
@@ -30,8 +25,17 @@ func _ready():
 	# Setup initial game state
 	initialize_game()
 	
-	# Setup pause menu signals
-	connect_pause_menu()
+	# Connect signals to GameUI
+	var deployment_panel = game_ui.get_node("DeploymentPanel")
+	if deployment_panel:
+		deployment_panel.connect("deploy_aerial", Callable(base_station, "_on_deploy_aerial"))
+		deployment_panel.connect("deploy_ground", Callable(base_station, "_on_deploy_ground"))
+	
+	var upgrade_panel = game_ui.get_node("UpgradePanel")
+	if upgrade_panel:
+		upgrade_panel.connect("upgrade_selected", Callable(base_station, "_on_upgrade_selected"))
+	
+	print("Game initialized")
 
 func _input(event):
 	# Toggle pause menu
@@ -40,7 +44,7 @@ func _input(event):
 	
 	# Toggle help panel
 	if event.is_action_pressed("show_help"):
-		toggle_help_panel()
+		game_ui.toggle_help()
 
 func initialize_game():
 	# Generate initial resources
@@ -50,14 +54,6 @@ func initialize_game():
 	update_mission_display()
 	
 	print("Game initialized")
-
-# Connect signals for the pause menu
-func connect_pause_menu():
-	# Pause menu is already in the scene hierarchy, just need to connect signals
-	pause_menu.connect("resume_game", Callable(self, "_on_resume_game"))
-	pause_menu.connect("quit_game", Callable(self, "_on_quit_game"))
-	
-	print("Pause menu signals connected")
 
 # Pause/unpause the game
 func toggle_pause():
@@ -72,14 +68,13 @@ func toggle_pause():
 		Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 		
 		# Show the pause menu
-		pause_menu.visible = true
-		pause_menu.show_menu()
+		game_ui.show_pause_menu()
 		
 		print("Game paused. Mouse was captured: " + str(mouse_was_captured))
 	else:
-		# Hide the pause menu
-		pause_menu.hide_menu()
-		pause_menu.visible = false
+		# Hide the pause menu and unpause
+		if game_ui.is_paused:
+			game_ui._on_resume_game()
 		
 		# Unpause the game
 		get_tree().paused = false
@@ -87,7 +82,6 @@ func toggle_pause():
 		# Restore mouse capture if it was captured before
 		if mouse_was_captured:
 			# Use a tween to delay recapturing the mouse slightly
-			# This ensures proper operation after unpausing
 			create_tween().tween_callback(func(): 
 				Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 				print("Mouse recaptured after unpausing")
@@ -95,22 +89,23 @@ func toggle_pause():
 		
 		print("Game unpaused. Restoring mouse capture: " + str(mouse_was_captured))
 
-# Signal handlers for pause menu
-func _on_resume_game():
-	print("Resume game signal received")
-	toggle_pause() # This will handle unpausing
-
-func _on_quit_game():
-	print("Quit game signal received, exiting...")
-	get_tree().quit()
-
 func spawn_resources():
+	# Check if resource spawn points exist
+	if !resource_spawn_points:
+		push_error("Resource spawn points not found!")
+		return
+	
 	# Get resource spawn points from the scene
 	var spawn_points = []
 	for point in resource_spawn_points.get_children():
 		spawn_points.append(point.global_position)
 	
-	# Remove any pre-existing resource instances used for testing
+	# Check if resources container exists
+	if !resources_container:
+		push_error("Resources container not found!")
+		return
+		
+	# Remove any pre-existing resource instances
 	for child in resources_container.get_children():
 		child.queue_free()
 	
@@ -164,18 +159,13 @@ func weighted_random_choice(options, weights):
 
 func update_mission_display():
 	# Update mission info in UI
-	mission_display.set_mission_number(current_mission_number)
-	mission_display.set_resources_collected(total_resources_collected)
-	mission_display.set_missions_completed(missions_completed)
+	game_ui.update_mission_info(current_mission_number, total_resources_collected, missions_completed)
 
-func toggle_help_panel():
-	# Show/hide help panel
-	help_panel.visible = !help_panel.visible
+# Method called when resources are delivered to base
+func add_resources(resource_dict):
+	# Update total resources collected
+	for resource_type in resource_dict:
+		total_resources_collected += resource_dict[resource_type]
 	
-	# Optionally free the mouse when help is visible
-	if help_panel.visible:
-		mouse_was_captured = Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED
-		Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
-	else:
-		if mouse_was_captured and !is_game_paused:
-			Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+	# Update UI
+	update_mission_display()

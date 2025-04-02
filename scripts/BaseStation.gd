@@ -31,16 +31,12 @@ var ground_drone_upgrades = {
 	"terrain_handling": 1
 }
 
-# Spawn points for drones - now using node paths instead of exports
+# Spawn points
 @onready var aerial_spawn_point = $"../DroneSpawnPoints/AerialSpawnPoint"
 @onready var ground_spawn_point = $"../DroneSpawnPoints/GroundSpawnPoint"
 
-# UI References - updated to use the new paths in the Main scene
-@onready var resource_display = $"../GameUI/ResourceDisplay"
-@onready var upgrade_panel = $"../GameUI/UpgradePanel"
-@onready var deployment_panel = $"../GameUI/DeploymentPanel"
-@onready var mission_status = $"../GameUI/MissionStatus"
-@onready var cargo_ui = $"../GameUI/CargoUI"
+# UI Reference - now we just need a single reference to GameUI
+@onready var game_ui = $"../GameUI"
 
 # Game State
 enum GameState {BASE_MANAGEMENT, AERIAL_DEPLOYMENT, GROUND_DEPLOYMENT}
@@ -49,14 +45,6 @@ var current_state = GameState.BASE_MANAGEMENT
 func _ready():
 	# Initialize UI
 	update_resource_display()
-	
-	# Hide upgrade panel initially
-	upgrade_panel.visible = false
-	
-	# Connect UI signals
-	deployment_panel.connect("deploy_aerial", Callable(self, "_on_deploy_aerial"))
-	deployment_panel.connect("deploy_ground", Callable(self, "_on_deploy_ground"))
-	upgrade_panel.connect("upgrade_selected", Callable(self, "_on_upgrade_selected"))
 	
 	# Start in base management
 	enter_base_management()
@@ -75,73 +63,56 @@ func update_docking_status():
 		
 		if distance <= docking_distance:
 			if current_state == GameState.AERIAL_DEPLOYMENT:
-				mission_status.text = "Press O to dock aerial drone"
+				game_ui.set_status_message("Press O to dock aerial drone")
 			elif current_state == GameState.GROUND_DEPLOYMENT:
-				mission_status.text = "Press O to dock ground drone"
+				game_ui.set_status_message("Press O to dock ground drone")
 		else:
 			if current_state == GameState.AERIAL_DEPLOYMENT:
-				mission_status.text = "Aerial Drone Deployed: Return to base to dock"
+				game_ui.set_status_message("Aerial Drone Deployed: Return to base to dock")
 			elif current_state == GameState.GROUND_DEPLOYMENT:
-				mission_status.text = "Ground Drone Deployed: Return to base to dock"
+				game_ui.set_status_message("Ground Drone Deployed: Return to base to dock")
 
 func _input(event):
 	# Tab between management modes in base
 	if event.is_action_pressed("toggle_management_mode") and current_state == GameState.BASE_MANAGEMENT:
-		upgrade_panel.visible = !upgrade_panel.visible
+		game_ui.toggle_upgrade_panel(!game_ui.upgrade_panel.visible)
 	
-	# Emergency recall drone - now using R key instead of ESC
+	# Emergency recall drone
 	if event.is_action_pressed("recall_drone") and current_state != GameState.BASE_MANAGEMENT:
 		recall_active_drone()
 
 func enter_base_management():
 	current_state = GameState.BASE_MANAGEMENT
 	
-	# Enable base UI
-	deployment_panel.visible = true
-	
-	# Update status
-	mission_status.text = "Base Operations: Select Drone to Deploy"
-	
-	# Disconnect UI before freeing drones
-	var aerial_ui_connector = get_node("../ActiveDrones/AerialDroneUIConnector")
-	var ground_ui_connector = get_node("../ActiveDrones/GroundDroneUIConnector")
+	# Update UI for base management
+	game_ui.set_active_drone("none")
+	game_ui.show_deployment_panel(true)
+	game_ui.set_status_message("Base Operations: Select Drone to Deploy")
 	
 	# Free any existing drones
 	if aerial_drone:
-		if aerial_ui_connector:
-			aerial_ui_connector.disconnect_drone()
 		aerial_drone.queue_free()
 		aerial_drone = null
 	
 	if ground_drone:
-		if ground_ui_connector:
-			ground_ui_connector.disconnect_drone()
 		ground_drone.queue_free()
 		ground_drone = null
 	
 	# Reset active drone reference
 	active_drone = null
 	
-	# Hide drone-specific UI
-	cargo_ui.visible = false
-	
 	print("Entered base management mode")
 
 func deploy_aerial_drone():
 	current_state = GameState.AERIAL_DEPLOYMENT
 	
-	# Hide base UI
-	deployment_panel.visible = false
-	upgrade_panel.visible = false
+	# Hide base UI elements
+	game_ui.show_deployment_panel(false)
+	game_ui.toggle_upgrade_panel(false)
 	
 	# Instantiate aerial drone
 	aerial_drone = aerial_drone_scene.instantiate()
-	get_node("../ActiveDrones").add_child(aerial_drone)  # Add to ActiveDrones node
-	
-	# Connect drone to UI
-	var ui_connector = get_node("../ActiveDrones/AerialDroneUIConnector")
-	if ui_connector:
-		ui_connector.connect_drone(aerial_drone)
+	get_node("../ActiveDrones").add_child(aerial_drone)
 	
 	# Position at spawn point
 	aerial_drone.global_transform = aerial_spawn_point.global_transform
@@ -158,29 +129,22 @@ func deploy_aerial_drone():
 	# Set as active drone
 	active_drone = aerial_drone
 	
-	# Update status
-	mission_status.text = "Aerial Drone Deployed: Scan for Resources"
+	# Update UI for aerial drone
+	game_ui.set_active_drone("aerial")
+	game_ui.set_status_message("Aerial Drone Deployed: Scan for Resources")
 	
 	print("Aerial drone deployed - use WASD, Space/Shift to ascend/descend, F to scan")
 
 func deploy_ground_drone():
 	current_state = GameState.GROUND_DEPLOYMENT
 	
-	# Hide base UI
-	deployment_panel.visible = false
-	upgrade_panel.visible = false
-	
-	# Show cargo UI
-	cargo_ui.visible = true
+	# Hide base UI elements
+	game_ui.show_deployment_panel(false)
+	game_ui.toggle_upgrade_panel(false)
 	
 	# Instantiate ground drone
 	ground_drone = ground_drone_scene.instantiate()
-	get_node("../ActiveDrones").add_child(ground_drone)  # Add to ActiveDrones node
-	
-	# Connect drone to UI
-	var ui_connector = get_node("../ActiveDrones/GroundDroneUIConnector")
-	if ui_connector:
-		ui_connector.connect_drone(ground_drone)
+	get_node("../ActiveDrones").add_child(ground_drone)
 	
 	# Position at spawn point
 	ground_drone.global_transform = ground_spawn_point.global_transform
@@ -201,8 +165,9 @@ func deploy_ground_drone():
 	# Set as active drone
 	active_drone = ground_drone
 	
-	# Update status
-	mission_status.text = "Ground Drone Deployed: Collect Resources"
+	# Update UI for ground drone
+	game_ui.set_active_drone("ground")
+	game_ui.set_status_message("Ground Drone Deployed: Collect Resources")
 	
 	print("Ground drone deployed - use WASD, F to interact with resources")
 
@@ -240,11 +205,7 @@ func apply_ground_upgrades(drone):
 
 func update_resource_display():
 	# Update UI with current resource counts
-	resource_display.update_all(stored_resources)
-	
-	# Also update upgrade panel if it exists
-	if upgrade_panel:
-		upgrade_panel.update_button_states(stored_resources, aerial_drone_upgrades, ground_drone_upgrades)
+	game_ui.update_resources(stored_resources)
 
 func process_upgrade(drone_type, upgrade_type):
 	# Check if we have resources for the upgrade
