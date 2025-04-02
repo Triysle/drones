@@ -32,13 +32,6 @@ debug_shape_thickness = 5
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 
-[node name="CargoIndicator" type="ProgressBar" parent="CanvasLayer"]
-custom_minimum_size = Vector2(300, 0)
-offset_left = 20.0
-offset_top = 20.0
-offset_right = 320.0
-offset_bottom = 47.0
-
 [node name="Crosshair" type="TextureRect" parent="CanvasLayer"]
 anchors_preset = 8
 anchor_left = 0.5
@@ -57,12 +50,12 @@ texture = ExtResource("2_blo87")
 visible = false
 
 [node name="CargoSlotsUI" parent="CanvasLayer" instance=ExtResource("4_otmn8")]
-anchors_preset = 1
-offset_left = -280.0
-offset_top = 0.0
-offset_right = 0.0
-offset_bottom = 60.0
+offset_left = -282.0
+offset_top = 27.0
+offset_right = -2.0
+offset_bottom = 87.0
 grow_vertical = 1
 
 [node name="ResourceInfoLabel" parent="CanvasLayer" instance=ExtResource("5_oweyx")]
-anchors_preset = 8
+offset_top = 51.0
+offset_bottom = 77.0

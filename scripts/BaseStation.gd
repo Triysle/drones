@@ -3,6 +3,7 @@ extends Node3D
 # Base Station Properties
 @export var aerial_drone_scene = load("res://scenes/AerialDrone.tscn") 
 @export var ground_drone_scene = load("res://scenes/GroundDrone.tscn")
+@export var docking_distance: float = 15.0  # How close drones need to be to dock
 
 # Drone References
 var aerial_drone = null
@@ -61,6 +62,27 @@ func _ready():
 	
 	print("Base station initialized")
 
+func _process(_delta):
+	# Check if drones are within docking range
+	if current_state != GameState.BASE_MANAGEMENT:
+		update_docking_status()
+
+func update_docking_status():
+	# Update status message based on drone proximity to base
+	if active_drone:
+		var distance = active_drone.global_position.distance_to(global_position)
+		
+		if distance <= docking_distance:
+			if current_state == GameState.AERIAL_DEPLOYMENT:
+				mission_status.text = "Press O to dock aerial drone"
+			elif current_state == GameState.GROUND_DEPLOYMENT:
+				mission_status.text = "Press O to dock ground drone"
+		else:
+			if current_state == GameState.AERIAL_DEPLOYMENT:
+				mission_status.text = "Aerial Drone Deployed: Return to base to dock"
+			elif current_state == GameState.GROUND_DEPLOYMENT:
+				mission_status.text = "Ground Drone Deployed: Return to base to dock"
+
 func _input(event):
 	# Tab between management modes in base
 	if event.is_action_pressed("toggle_management_mode") and current_state == GameState.BASE_MANAGEMENT:
@@ -113,6 +135,9 @@ func deploy_aerial_drone():
 	# Connect signals
 	aerial_drone.connect("docking_completed", Callable(self, "_on_aerial_drone_docked"))
 	
+	# Pass base station reference to drone
+	aerial_drone.base_station = self
+	
 	# Set as active drone
 	active_drone = aerial_drone
 	
@@ -141,6 +166,9 @@ func deploy_ground_drone():
 	# Connect signals
 	ground_drone.connect("resources_delivered", Callable(self, "_on_resources_delivered"))
 	
+	# Pass base station reference to drone
+	ground_drone.base_station = self
+	
 	# Transfer waypoints from aerial drone if available
 	if aerial_drone:
 		ground_drone.set_waypoints(aerial_drone.marked_locations)
@@ -152,6 +180,11 @@ func deploy_ground_drone():
 	mission_status.text = "Ground Drone Deployed: Collect Resources"
 	
 	print("Ground drone deployed - use WASD, F to interact with resources")
+
+func is_drone_in_docking_range(drone):
+	if drone:
+		return drone.global_position.distance_to(global_position) <= docking_distance
+	return false
 
 func recall_active_drone():
 	# Emergency recall function

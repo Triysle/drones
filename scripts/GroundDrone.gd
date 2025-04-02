@@ -42,6 +42,7 @@ var segments_collected: int = 0  # Track how many segments we've collected
 var target_waypoint = null
 var waypoints = []  # Will be populated from aerial drone's marked locations
 var resource_in_sight: bool = false  # Track if we're looking at a resource
+var base_station = null
 
 func _ready():
 	# Initialize slot-based inventory
@@ -430,7 +431,7 @@ func add_resource_to_cargo(resource_type: String):
 func update_cargo_ui():
 	cargo_slots_ui.update_slots(cargo_slots)
 
-func process_docking(_delta):
+func process_docking(delta):
 	# Docking logic
 	velocity = Vector3.ZERO
 	
@@ -442,11 +443,16 @@ func process_docking(_delta):
 	complete_docking()
 
 func is_near_base():
-	# This would check distance to base in practice
-	# For now, return true when the dock key is pressed
-	return true
+	# Check if drone is near base station
+	if base_station:
+		var distance = global_position.distance_to(base_station.global_position)
+		return distance < 15.0  # Same as the docking_distance in BaseStation.gd
+	return false
 
 func complete_docking():
+	# Only process once - change state immediately to prevent multiple calls
+	current_state = DroneState.IDLE
+	
 	# Process resources at base
 	if current_cargo_count > 0:
 		print("Unloading cargo:")
@@ -470,9 +476,6 @@ func complete_docking():
 		# Reset cargo
 		initialize_cargo_slots(max_cargo_slots)
 		current_cargo_count = 0
-	
-	# Reset state
-	current_state = DroneState.IDLE
 	
 	print("Docking complete, cargo unloaded")
 

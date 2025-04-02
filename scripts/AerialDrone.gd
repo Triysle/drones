@@ -36,6 +36,9 @@ var current_state: DroneState = DroneState.FLYING
 var input_dir: Vector2 = Vector2.ZERO
 var vertical_input: float = 0.0
 
+# Reference to base station
+var base_station = null
+
 func _ready():
 	# Initialize
 	$ScanEffect.connect("body_entered", Callable(self, "_on_scan_effect_body_entered"))
@@ -196,6 +199,7 @@ func drain_battery(delta):
 func update_battery_display():
 	# Update UI battery indicator
 	battery_indicator.value = current_battery
+	battery_indicator.max_value = max_battery
 
 func begin_scan():
 	current_state = DroneState.SCANNING
@@ -230,9 +234,11 @@ func mark_location(pos):
 	print("Marked location at: ", pos)
 
 func is_near_base():
-	# This would check distance to base in practice
-	# For now, we'll just return true when the dock key is pressed
-	return true
+	# Check if drone is near base station
+	if base_station:
+		var distance = global_position.distance_to(base_station.global_position)
+		return distance < 15.0  # Same as the docking_distance in BaseStation.gd
+	return false
 
 func complete_docking():
 	# Recharge battery

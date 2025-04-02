@@ -1,10 +1,10 @@
 extends Control
 
 # Resource display labels
-@onready var scrap_metal_label = $ResourceCounts/ScrapMetalCount
-@onready var power_cell_label = $ResourceCounts/PowerCellCount
-@onready var electronic_parts_label = $ResourceCounts/ElectronicPartsCount
-@onready var rare_metal_label = $ResourceCounts/RareMetalCount
+@onready var scrap_metal_label = $ResourceCounts/VBoxContainer/ScrapMetalCount
+@onready var power_cell_label = $ResourceCounts/VBoxContainer/PowerCellCount
+@onready var electronic_parts_label = $ResourceCounts/VBoxContainer/ElectronicPartsCount
+@onready var rare_metal_label = $ResourceCounts/VBoxContainer/RareMetalCount
 
 func _ready():
 	# Initialize with zeros
@@ -17,13 +17,13 @@ func _ready():
 func update_resource(resource_type, amount):
 	match resource_type:
 		"ScrapMetal":
-			scrap_metal_label.text = str(amount)
+			scrap_metal_label.text = "Scrap Metal: " + str(amount)
 		"PowerCell":
-			power_cell_label.text = str(amount)
+			power_cell_label.text = "Power Cell: " + str(amount)
 		"ElectronicParts":
-			electronic_parts_label.text = str(amount)
+			electronic_parts_label.text = "Electronic Parts: " + str(amount)
 		"RareMetal":
-			rare_metal_label.text = str(amount)
+			rare_metal_label.text = "Rare Metal: " + str(amount)
 
 # Update all resources at once
 func update_all(resources):
