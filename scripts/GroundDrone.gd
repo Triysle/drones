@@ -33,7 +33,7 @@ var segments_collected: int = 0  # Track how many segments we've collected
 # References
 @onready var camera = $Camera3D
 @onready var interaction_ray = $Camera3D/InteractionRay
-@onready var crosshair = $"../GameUI/Crosshair"
+@onready var crosshair = get_node("/root/Main/GameUI/Crosshair")
 
 # UI references - these will be updated to point to nodes in the main scene
 var progress_indicator

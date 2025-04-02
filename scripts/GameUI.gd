@@ -33,6 +33,7 @@ func _ready():
 		help_toggle.connect("pressed", Callable(self, "toggle_help"))
 	if pause_menu:
 		pause_menu.connect("resume_game", Callable(self, "_on_resume_game"))
+		pause_menu.connect("quit_game", Callable(self, "_on_quit_game"))
 	
 	print("GameUI initialized")
 
@@ -132,6 +133,21 @@ func _on_resume_game():
 		if pause_menu.has_method("hide_menu"):
 			pause_menu.hide_menu()
 		pause_menu.visible = false
+	
+	# Ensure the GameManager also unpauses properly
+	var game_manager = get_node_or_null("/root/Main/GameManager")
+	if game_manager and game_manager.has_method("resume_from_pause"):
+		game_manager.resume_from_pause()
+
+# Handle quit game (called by signal)
+func _on_quit_game():
+	# Get reference to the GameManager to handle quit logic
+	var game_manager = get_node_or_null("/root/Main/GameManager")
+	if game_manager and game_manager.has_method("quit_game"):
+		game_manager.quit_game()
+	else:
+		# Fallback if no GameManager found
+		get_tree().quit()
 
 # Update mission info display
 func update_mission_info(mission_num, resources_collected, missions_completed):

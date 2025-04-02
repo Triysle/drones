@@ -57,6 +57,22 @@ func initialize_game():
 
 # Pause/unpause the game
 func toggle_pause():
+	# Check if the game is already paused by the pause menu
+	if is_game_paused && game_ui.is_paused:
+		# Call resume directly instead of toggling
+		is_game_paused = false
+		game_ui._on_resume_game()
+		get_tree().paused = false
+		
+		# Restore mouse capture if it was captured before
+		if mouse_was_captured:
+			create_tween().tween_callback(func(): 
+				Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+				print("Mouse recaptured after unpausing")
+			).set_delay(0.05)
+		return
+	
+	# Original toggle code for all other cases
 	is_game_paused = !is_game_paused
 	
 	if is_game_paused:
@@ -88,6 +104,29 @@ func toggle_pause():
 			).set_delay(0.05)
 		
 		print("Game unpaused. Restoring mouse capture: " + str(mouse_was_captured))
+
+# Function called from GameUI when resuming via button
+func resume_from_pause():
+	is_game_paused = false
+	get_tree().paused = false
+	
+	# Restore mouse capture if it was captured before
+	if mouse_was_captured:
+		# Use a tween to delay recapturing the mouse slightly
+		create_tween().tween_callback(func(): 
+			Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+			print("Mouse recaptured after unpausing")
+		).set_delay(0.05)
+		
+	print("Game resumed from pause menu. Restoring mouse capture: " + str(mouse_was_captured))
+
+# Function to quit the game
+func quit_game():
+	print("Quitting game...")
+	# Perform any cleanup if needed
+	
+	# Quit the application
+	get_tree().quit()
 
 func spawn_resources():
 	# Check if resource spawn points exist
