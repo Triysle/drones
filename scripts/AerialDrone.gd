@@ -206,6 +206,12 @@ func begin_scan():
 	current_battery -= scan_energy_cost
 
 func perform_scan():
+	# Find resources container in the Main scene
+	var resources_container = get_node("/root/Main/Resources")
+	if !resources_container:
+		print("Error: Could not find Resources container")
+		return
+		
 	# Detect resources and points of interest in range
 	var scan_results = get_scannable_objects_in_range()
 	
@@ -229,9 +235,33 @@ func mark_location(pos):
 	# Add to marked locations
 	marked_locations.append(pos)
 	
-	# In practice, you'd also create a visual marker in the world
-	# and add it to the minimap
+	# Add visual marker using the waypoint system
+	var waypoint_system = get_node("/root/Main/Waypoints")
+	if waypoint_system:
+		# Get the resource type if we're marking a resource
+		var resource_type = ""
+		var resource = get_closest_resource_to_position(pos)
+		if resource:
+			resource_type = resource.resource_type
+		
+		# Add the waypoint
+		waypoint_system.add_waypoint(pos, resource_type)
+	
 	print("Marked location at: ", pos)
+	
+# Helper function to find closest resource to a position
+func get_closest_resource_to_position(pos: Vector3):
+	var resources = get_tree().get_nodes_in_group("resource")
+	var closest_resource = null
+	var closest_distance = 5.0 # Maximum detection radius
+	
+	for resource in resources:
+		var distance = resource.global_position.distance_to(pos)
+		if distance < closest_distance:
+			closest_distance = distance
+			closest_resource = resource
+	
+	return closest_resource
 
 func is_near_base():
 	# Check if drone is near base station

@@ -2,15 +2,14 @@ extends Node
 
 # Game Manager - Coordinates overall gameplay systems
 
-# Scene references
-@export var test_environment_scene = load("res://scenes/TestEnvironment.tscn")
-@export var base_station_scene = load("res://scenes/BaseStation.tscn") 
-@export var resource_scene = load("res://scenes/Resource.tscn")
-@export var pause_menu_scene = load("res://scenes/PauseMenu.tscn")
+# Scene references - now using preload for resource scene only
+@export var resource_scene = preload("res://scenes/Resource.tscn") 
 
-# Current environment
-var current_environment = null
-var base_station = null
+# Node path references (new)
+@onready var environment = $Environment
+@onready var base_station = $BaseStation
+@onready var resources_container = $Resources
+@onready var resource_spawn_points = $Environment/ResourceSpawnPoints
 
 # Game state tracking
 var current_mission_number = 1
@@ -18,10 +17,10 @@ var total_resources_collected = 0
 var missions_completed = 0
 var active_drone = null  # Reference to currently active drone (aerial or ground)
 
-# UI References
-@onready var mission_display = $CanvasLayer/MissionDisplay
-@onready var help_panel = $CanvasLayer/HelpPanel
-var pause_menu = null  # Will instantiate dynamically
+# UI References (updated paths)
+@onready var mission_display = $GameUI/MissionDisplay
+@onready var help_panel = $GameUI/HelpPanel
+@onready var pause_menu = $GameUI/PauseMenu
 
 # Game state
 var is_game_paused = false
@@ -31,8 +30,8 @@ func _ready():
 	# Setup initial game state
 	initialize_game()
 	
-	# Create pause menu
-	create_pause_menu()
+	# Setup pause menu signals
+	connect_pause_menu()
 
 func _input(event):
 	# Toggle pause menu
@@ -44,12 +43,6 @@ func _input(event):
 		toggle_help_panel()
 
 func initialize_game():
-	# Load test environment
-	load_environment()
-	
-	# Create base station
-	spawn_base_station()
-	
 	# Generate initial resources
 	spawn_resources()
 	
@@ -58,25 +51,13 @@ func initialize_game():
 	
 	print("Game initialized")
 
-# Create and setup the pause menu
-func create_pause_menu():
-	# Create a dedicated CanvasLayer for the pause menu with high layer value
-	# This ensures it draws on top of all other CanvasLayers
-	var pause_canvas = CanvasLayer.new()
-	pause_canvas.layer = 10
-	add_child(pause_canvas)
-	
-	# Instance the pause menu scene
-	pause_menu = pause_menu_scene.instantiate()
-	
-	# Add it to our high-priority canvas layer
-	pause_canvas.add_child(pause_menu)
-	
-	# Connect signals
+# Connect signals for the pause menu
+func connect_pause_menu():
+	# Pause menu is already in the scene hierarchy, just need to connect signals
 	pause_menu.connect("resume_game", Callable(self, "_on_resume_game"))
 	pause_menu.connect("quit_game", Callable(self, "_on_quit_game"))
 	
-	print("Pause menu created with dedicated high-priority CanvasLayer")
+	print("Pause menu signals connected")
 
 # Pause/unpause the game
 func toggle_pause():
@@ -91,12 +72,14 @@ func toggle_pause():
 		Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 		
 		# Show the pause menu
+		pause_menu.visible = true
 		pause_menu.show_menu()
 		
 		print("Game paused. Mouse was captured: " + str(mouse_was_captured))
 	else:
 		# Hide the pause menu
 		pause_menu.hide_menu()
+		pause_menu.visible = false
 		
 		# Unpause the game
 		get_tree().paused = false
@@ -121,27 +104,15 @@ func _on_quit_game():
 	print("Quit game signal received, exiting...")
 	get_tree().quit()
 
-func load_environment():
-	# Instantiate environment scene
-	current_environment = test_environment_scene.instantiate()
-	add_child(current_environment)
-	
-	print("Environment loaded")
-
-func spawn_base_station():
-	# Instantiate base station at specified position
-	base_station = base_station_scene.instantiate()
-	add_child(base_station)
-	
-	# Position base station
-	# In a full implementation, this would use a marker from the environment
-	base_station.global_position = Vector3(0, 0, 0)
-	
-	print("Base station spawned")
-
 func spawn_resources():
-	# Get resource spawn points from environment
-	var spawn_points = get_resource_spawn_points()
+	# Get resource spawn points from the scene
+	var spawn_points = []
+	for point in resource_spawn_points.get_children():
+		spawn_points.append(point.global_position)
+	
+	# Remove any pre-existing resource instances used for testing
+	for child in resources_container.get_children():
+		child.queue_free()
 	
 	# Spawn different resource types
 	var resource_types = ["ScrapMetal", "PowerCell", "ElectronicParts", "RareMetal"]
@@ -155,7 +126,7 @@ func spawn_resources():
 		
 		# Instantiate resource
 		var resource = resource_scene.instantiate()
-		current_environment.add_child(resource)
+		resources_container.add_child(resource)
 		
 		# Set resource properties
 		resource.global_position = point
@@ -173,48 +144,6 @@ func spawn_resources():
 				resource.resource_amount = 1
 	
 	print("Spawned " + str(spawn_points.size()) + " resources")
-
-func get_resource_spawn_points():
-	# In full implementation, this would get points from the environment
-	# For prototype, generate random positions
-	var points = []
-	var rng = RandomNumberGenerator.new()
-	rng.randomize()
-	
-	# Generate 15-20 resource points
-	var num_points = rng.randi_range(15, 20)
-	
-	# Exclusion zone around base (no resources too close to base)
-	var min_distance_from_base = 15.0
-	var max_distance_from_base = 150.0
-	
-	for i in range(num_points):
-		var valid_point = false
-		var point = Vector3.ZERO
-		
-		while !valid_point:
-			# Generate random point
-			var distance = rng.randf_range(min_distance_from_base, max_distance_from_base)
-			var angle = rng.randf() * 2.0 * PI
-			
-			# Calculate position
-			point = Vector3(
-				cos(angle) * distance,
-				0,  # At ground level
-				sin(angle) * distance
-			)
-			
-			# Check distance from other points (no resources too close together)
-			valid_point = true
-			for existing_point in points:
-				if point.distance_to(existing_point) < 10.0:
-					valid_point = false
-					break
-		
-		# Add valid point
-		points.append(point)
-	
-	return points
 
 func weighted_random_choice(options, weights):
 	# Choose a random option based on weights

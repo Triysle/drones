@@ -1,8 +1,8 @@
 extends Node3D
 
 # Base Station Properties
-@export var aerial_drone_scene = load("res://scenes/AerialDrone.tscn") 
-@export var ground_drone_scene = load("res://scenes/GroundDrone.tscn")
+@export var aerial_drone_scene = preload("res://scenes/AerialDrone.tscn") 
+@export var ground_drone_scene = preload("res://scenes/GroundDrone.tscn")
 @export var docking_distance: float = 15.0  # How close drones need to be to dock
 
 # Drone References
@@ -31,15 +31,16 @@ var ground_drone_upgrades = {
 	"terrain_handling": 1
 }
 
-# Spawn points for drones
-@export var aerial_spawn_point: Node3D
-@export var ground_spawn_point: Node3D
+# Spawn points for drones - now using node paths instead of exports
+@onready var aerial_spawn_point = $"../DroneSpawnPoints/AerialSpawnPoint"
+@onready var ground_spawn_point = $"../DroneSpawnPoints/GroundSpawnPoint"
 
-# UI References
-@onready var resource_display = $CanvasLayer/ResourceDisplay
-@onready var upgrade_panel = $CanvasLayer/UpgradePanel
-@onready var deployment_panel = $CanvasLayer/DeploymentPanel
-@onready var mission_status = $CanvasLayer/MissionStatus
+# UI References - updated to use the new paths in the Main scene
+@onready var resource_display = $"../GameUI/ResourceDisplay"
+@onready var upgrade_panel = $"../GameUI/UpgradePanel"
+@onready var deployment_panel = $"../GameUI/DeploymentPanel"
+@onready var mission_status = $"../GameUI/MissionStatus"
+@onready var cargo_ui = $"../GameUI/CargoUI"
 
 # Game State
 enum GameState {BASE_MANAGEMENT, AERIAL_DEPLOYMENT, GROUND_DEPLOYMENT}
@@ -101,17 +102,28 @@ func enter_base_management():
 	# Update status
 	mission_status.text = "Base Operations: Select Drone to Deploy"
 	
+	# Disconnect UI before freeing drones
+	var aerial_ui_connector = get_node("../ActiveDrones/AerialDroneUIConnector")
+	var ground_ui_connector = get_node("../ActiveDrones/GroundDroneUIConnector")
+	
 	# Free any existing drones
 	if aerial_drone:
+		if aerial_ui_connector:
+			aerial_ui_connector.disconnect_drone()
 		aerial_drone.queue_free()
 		aerial_drone = null
 	
 	if ground_drone:
+		if ground_ui_connector:
+			ground_ui_connector.disconnect_drone()
 		ground_drone.queue_free()
 		ground_drone = null
 	
 	# Reset active drone reference
 	active_drone = null
+	
+	# Hide drone-specific UI
+	cargo_ui.visible = false
 	
 	print("Entered base management mode")
 
@@ -124,7 +136,12 @@ func deploy_aerial_drone():
 	
 	# Instantiate aerial drone
 	aerial_drone = aerial_drone_scene.instantiate()
-	add_child(aerial_drone)
+	get_node("../ActiveDrones").add_child(aerial_drone)  # Add to ActiveDrones node
+	
+	# Connect drone to UI
+	var ui_connector = get_node("../ActiveDrones/AerialDroneUIConnector")
+	if ui_connector:
+		ui_connector.connect_drone(aerial_drone)
 	
 	# Position at spawn point
 	aerial_drone.global_transform = aerial_spawn_point.global_transform
@@ -153,9 +170,17 @@ func deploy_ground_drone():
 	deployment_panel.visible = false
 	upgrade_panel.visible = false
 	
+	# Show cargo UI
+	cargo_ui.visible = true
+	
 	# Instantiate ground drone
 	ground_drone = ground_drone_scene.instantiate()
-	add_child(ground_drone)
+	get_node("../ActiveDrones").add_child(ground_drone)  # Add to ActiveDrones node
+	
+	# Connect drone to UI
+	var ui_connector = get_node("../ActiveDrones/GroundDroneUIConnector")
+	if ui_connector:
+		ui_connector.connect_drone(ground_drone)
 	
 	# Position at spawn point
 	ground_drone.global_transform = ground_spawn_point.global_transform

@@ -6,12 +6,12 @@
 [sub_resource type="BoxShape3D" id="BoxShape3D_oqwq7"]
 size = Vector3(500, 1, 500)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_yhw7g"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_u7bsa"]
 albedo_texture = ExtResource("1_u7bsa")
 uv1_triplanar = true
 
 [sub_resource type="BoxMesh" id="BoxMesh_xf2xp"]
-material = SubResource("StandardMaterial3D_yhw7g")
+material = SubResource("StandardMaterial3D_u7bsa")
 size = Vector3(500, 1, 500)
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_j6s73"]
@@ -25,12 +25,12 @@ uv1_triplanar = true
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_jw7v2"]
 sky_top_color = Color(0.529412, 0.454902, 0.341176, 1)
 
-[sub_resource type="Sky" id="Sky_eronj"]
+[sub_resource type="Sky" id="Sky_yhw7g"]
 sky_material = SubResource("ProceduralSkyMaterial_jw7v2")
 
 [sub_resource type="Environment" id="Environment_b2s03"]
 background_mode = 2
-sky = SubResource("Sky_eronj")
+sky = SubResource("Sky_yhw7g")
 
 [node name="TestEnvironment" type="Node3D"]
 

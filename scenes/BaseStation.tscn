@@ -1,9 +1,7 @@
-[gd_scene load_steps=9 format=3 uid="uid://dy428q51dyjd3"]
+[gd_scene load_steps=7 format=3 uid="uid://dy428q51dyjd3"]
 
 [ext_resource type="Script" uid="uid://cgip43em6p0ct" path="res://scripts/BaseStation.gd" id="1_iu1fa"]
 [ext_resource type="Script" uid="uid://cbyc3h2jr6spw" path="res://scripts/ResourceDisplay.gd" id="2_qptkt"]
-[ext_resource type="PackedScene" uid="uid://c2l38vnfcxqdm" path="res://scenes/AerialDrone.tscn" id="2_v6vfi"]
-[ext_resource type="PackedScene" uid="uid://hm58txnl0i6t" path="res://scenes/GroundDrone.tscn" id="3_v2mj5"]
 [ext_resource type="Script" uid="uid://br6mdodag811c" path="res://scripts/DeploymentPanel.gd" id="3_v6vfi"]
 [ext_resource type="Script" uid="uid://cy2aa8pp8r5ib" path="res://scripts/UpgradePanel.gd" id="4_v2mj5"]
 
@@ -16,12 +14,8 @@ height = 0.2
 height = 0.2
 radius = 10.0
 
-[node name="BaseStation" type="StaticBody3D" node_paths=PackedStringArray("aerial_spawn_point", "ground_spawn_point")]
+[node name="BaseStation" type="StaticBody3D"]
 script = ExtResource("1_iu1fa")
-aerial_drone_scene = ExtResource("2_v6vfi")
-ground_drone_scene = ExtResource("3_v2mj5")
-aerial_spawn_point = NodePath("AerialSpawnPoint")
-ground_spawn_point = NodePath("GroundSpawnPoint")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="."]
 mesh = SubResource("CylinderMesh_fv1n8")

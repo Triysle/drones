@@ -34,9 +34,11 @@ var segments_collected: int = 0  # Track how many segments we've collected
 @onready var camera = $Camera3D
 @onready var interaction_ray = $Camera3D/InteractionRay
 @onready var crosshair = $CanvasLayer/Crosshair
-@onready var progress_indicator = $CanvasLayer/ProgressIndicator
-@onready var cargo_slots_ui = $CanvasLayer/CargoSlotsUI
-@onready var resource_info_label = $CanvasLayer/ResourceInfoLabel
+
+# UI references - these will be updated to point to nodes in the main scene
+var progress_indicator
+var cargo_slots_ui
+var resource_info_label
 
 # Navigation
 var target_waypoint = null
@@ -47,6 +49,14 @@ var base_station = null
 func _ready():
 	# Initialize slot-based inventory
 	initialize_cargo_slots(max_cargo_slots)
+	
+	# Find UI elements in the main scene
+	progress_indicator = get_node("/root/Main/GameUI/ProgressIndicator")
+	cargo_slots_ui = get_node("/root/Main/GameUI/CargoUI")
+	resource_info_label = get_node("/root/Main/GameUI/ResourceInfoLabel")
+	
+	# Show the cargo UI
+	cargo_slots_ui.visible = true
 	
 	# Hide progress indicator initially
 	progress_indicator.visible = false
@@ -495,7 +505,26 @@ func expand_cargo_capacity(new_capacity: int):
 # Set waypoints from aerial drone's marked locations
 func set_waypoints(points):
 	waypoints = points
+	
+	# Connect to the waypoint system
+	var waypoint_system = get_node("/root/Main/Waypoints")
+	if waypoint_system:
+		# We don't need to do anything specific here since the waypoint system 
+		# already has the visual markers created by the aerial drone
+		
+		# Just update our local copy of waypoints
+		waypoints = waypoint_system.get_all_waypoints()
+	
 	print("Received " + str(waypoints.size()) + " waypoints from aerial drone")
+	
+# Find the closest waypoint to current position
+func find_closest_waypoint():
+	var waypoint_system = get_node("/root/Main/Waypoints")
+	if waypoint_system:
+		var closest_idx = waypoint_system.get_closest_waypoint(global_position)
+		if closest_idx >= 0:
+			return waypoint_system.get_all_waypoints()[closest_idx]
+	return null
 
 # Calculate total resources by type
 func get_resources_by_type():
